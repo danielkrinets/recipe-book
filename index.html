@@ -136,6 +136,8 @@
   .emoji.on { border-color: var(--green-dark); background: var(--green-soft); }
 
   .empty { margin: 8px 0 20px; padding: 24px 8px; color: var(--muted); text-align: center; }
+  .bot-hint { margin: 0 0 16px; padding: 14px 16px; border-radius: 14px; background: var(--card); line-height: 1.45; }
+  .bot-hint .btn { margin-top: 12px; }
 
   .btn {
     display: block;
@@ -348,7 +350,8 @@
   const DONE_KEY = 'recipe-book-done-v1';
   const CATS_KEY = 'recipe-book-cats-v1';
   const OFFERED_KEY = 'recipe-book-offered-v1';
-  const MAX_PHOTO = 800; // px on the longest side; keeps localStorage usage small
+  const MAX_PHOTO = 640; // px on the longest side; keeps localStorage usage small
+  const BOT_USERNAME = 'recipe4katyabot'; // username бота без @; пока пусто, кнопка не показывается
 
   const CATEGORIES = [
     { name: 'Выпечка', icon: '🥐', color: '#F6E3C6' },
@@ -375,7 +378,7 @@
         { name: 'Мука пшеничная', amount: '250', unit: 'г' },
         { name: 'Сахар', amount: '1', unit: 'ст. л.' },
         { name: 'Соль', amount: '1', unit: 'щепотка' },
-        { name: 'Растительное масло', amount: '3', unit: 'ст. л.' }
+        { name: 'Растительное масло', amount: '4', unit: 'ст. л.' }
       ],
       steps: [
         'Взбейте яйца с сахаром и солью.',
@@ -383,7 +386,7 @@
         'Постепенно добавляйте муку, помешивая, чтобы не было комков.',
         'Влейте оставшееся молоко и масло. Тесто должно быть жидким.',
         'Дайте тесту постоять 15 минут.',
-        'Жарьте на хорошо разогретой сковороде по минуте с каждой стороны.'
+        'Смажьте хорошо разогретую сковороду 1 ст. л. растительного масла и жарьте по минуте с каждой стороны.'
       ]
     },
     {
@@ -660,7 +663,7 @@
         canvas.height = Math.round(img.height * k);
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
         URL.revokeObjectURL(url);
-        resolve(canvas.toDataURL('image/jpeg', 0.75));
+        resolve(canvas.toDataURL('image/jpeg', 0.6));
       };
       img.onerror = () => {
         URL.revokeObjectURL(url);
@@ -761,7 +764,18 @@
       : '<p class="empty">Ничего не нашлось. Попробуйте другое слово.</p>';
   }
 
+  function renderFavs() {
+    const items = recipes.filter(r => r.favorite);
+    return `
+      <header class="head">
+        <h1>★ Избранное</h1>
+        <p class="sub">Рецептов: ${items.length}</p>
+      </header>
+      ${items.length ? recipeList(items) : '<p class="empty">Отметьте рецепт звёздочкой, и он появится здесь.</p>'}`;
+  }
+
   function renderHome() {
+    const favCount = recipes.filter(r => r.favorite).length;
     return `
       <header class="head">
         <h1>Книга рецептов</h1>
@@ -770,7 +784,13 @@
       <input id="search" class="search" type="search" placeholder="Поиск по названию или ингредиенту"
              autocomplete="off" value="${esc(state.query)}">
       <div id="results">${resultsHtml()}</div>
+      <div class="bot-hint">
+        <b>Добавить рецепт из Telegram.</b> Отправьте боту ссылку на рецепт, скриншот страницы или фото
+        или напишите рецепт текстом. Бот пришлёт черновик, и вы подтвердите его перед сохранением.
+        ${BOT_USERNAME ? '<button class="btn btn-soft" data-action="open-bot">Открыть чат с ботом</button>' : ''}
+      </div>
       <div class="actions">
+        ${favCount ?`<button class="btn btn-soft" data-action="open-favs">★ Избранное (${favCount})</button>` : ''}
         <button class="btn btn-primary" data-action="new">+ Добавить новый рецепт</button>
         <button class="btn btn-soft" data-action="new-cat">+ Новая категория</button>
       </div>`;
@@ -860,6 +880,7 @@
 
       <div class="actions">
         ${doneList.length ? '<button class="btn btn-ghost" data-action="reset-done">Сбросить отметки</button>' : ''}
+        <button class="btn btn-soft" data-action="toggle-fav">${r.favorite ? '★ В избранном' : '☆ В избранное'}</button>
         <button class="btn btn-soft" data-action="edit">Редактировать</button>
         <button class="btn btn-danger" data-action="delete">${state.confirmDelete ? 'Точно удалить?' : 'Удалить рецепт'}</button>
       </div>`;
@@ -920,7 +941,7 @@
   }
 
   function render() {
-    const views = { home: renderHome, category: renderCategory, recipe: renderRecipe, form: renderForm, 'cat-form': renderCatForm };
+    const views = { home: renderHome, favs: renderFavs, category: renderCategory, recipe: renderRecipe, form: renderForm, 'cat-form': renderCatForm };
     const body = views[state.view]();
     const back = state.view === 'home' ? '' : '<div class="top"><button class="back" data-action="back">← Назад</button></div>';
     app.innerHTML = back + body;
@@ -988,7 +1009,8 @@
   function saveRecipe() {
     const parsed = parseRecipe(readForm());
     if (parsed.error) return fail(parsed.error);
-    const recipe = { ...parsed.recipe, id: state.editingId || uid() };
+    const old = recipes.find(r => r.id === state.editingId) || {};
+    const recipe = { ...parsed.recipe, id: state.editingId || uid(), favorite: !!old.favorite };
 
     const next = state.editingId
       ? recipes.map(r => (r.id === recipe.id ? recipe : r))
@@ -1031,6 +1053,24 @@
           draft: blankDraft(state.view === 'category' ? state.category : ''),
           editingId: ''
         });
+        break;
+      }
+
+      case 'open-favs':
+        go('favs');
+        break;
+
+      case 'open-bot': {
+        const url = `https://t.me/${BOT_USERNAME}`;
+        if (tg) tg.openTelegramLink(url);
+        else window.open(url, '_blank');
+        break;
+      }
+
+      case 'toggle-fav': {
+        const next = recipes.map(x => (x.id === state.recipeId ? { ...x, favorite: !x.favorite } : x));
+        if (writeJSON(KEY, next)) recipes = next;
+        render();
         break;
       }
 
