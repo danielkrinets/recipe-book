@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Книга рецептов</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #FBF6EE;
+    --card: #FFFFFF;
+    --text: #3B3228;
+    --muted: #7F7060;
+    --green: #A8C5A0;
+    --green-soft: #E4EFDF;
+    --green-dark: #3E6A46;
+    --orange: #E0834A;
+    --orange-dark: #B9612A;
+    --danger: #B4493A;
+    --danger-soft: #F6E1DC;
+    --line: #E9DCC9;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .app {
+    max-width: 450px;
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: 16px 16px 32px;
+  }
+
+  h1 { font-size: 26px; line-height: 1.2; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 0 0 12px; }
+
+  .head { margin: 8px 0 16px; }
+  .sub { margin: 0; color: var(--muted); }
+
+  .top { margin-bottom: 8px; }
+
+  .back {
+    background: none;
+    border: none;
+    padding: 8px 0;
+    font: inherit;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--green-dark);
+    cursor: pointer;
+  }
+
+  .search {
+    width: 100%;
+    margin-bottom: 16px;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    font-size: 16px;
+    outline: none;
+  }
+
+  input:focus, select:focus, textarea:focus, .search:focus { border-color: var(--green-dark); }
+
+  .cat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .cat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-height: 110px;
+    padding: 18px 14px;
+    border: none;
+    border-radius: 18px;
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .cat-icon { font-size: 32px; line-height: 1.1; }
+  .cat-name { font-size: 18px; font-weight: 700; }
+  .cat-count { font-size: 14px; color: var(--muted); }
+
+  .recipe-list { display: grid; gap: 10px; margin-bottom: 20px; }
+
+  .recipe-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .ri-photo { width: 64px; height: 64px; flex: none; object-fit: cover; border-radius: 12px; }
+  .ri-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .ri-title { font-size: 18px; font-weight: 700; }
+  .ri-meta { font-size: 15px; color: var(--muted); }
+
+  .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .emoji {
+    aspect-ratio: 1;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background: var(--card);
+    font-size: 24px;
+    cursor: pointer;
+  }
+  .emoji.on { border-color: var(--green-dark); background: var(--green-soft); }
+
+  .empty { margin: 8px 0 20px; padding: 24px 8px; color: var(--muted); text-align: center; }
+
+  .btn {
+    display: block;
+    width: 100%;
+    min-height: 52px;
+    padding: 14px 18px;
+    border: none;
+    border-radius: 14px;
+    font: inherit;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-primary { background: var(--orange); color: #FFFFFF; }
+  .btn-primary:active { background: var(--orange-dark); }
+  .btn-soft { background: var(--green-soft); color: var(--green-dark); }
+  .btn-soft:active { background: var(--green); }
+  .btn-ghost { background: transparent; color: var(--muted); }
+  .btn-danger { background: var(--danger-soft); color: var(--danger); }
+
+  .btn-round {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 26px;
+    line-height: 1;
+  }
+
+  .actions { display: grid; gap: 12px; margin-top: 24px; }
+
+  .tag {
+    display: inline-block;
+    margin-bottom: 8px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .recipe-title { font-size: 30px; }
+  .meta { margin: 0 0 16px; color: var(--muted); font-size: 17px; }
+
+  .card {
+    margin-bottom: 16px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--card);
+  }
+
+  .servings {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .serv-val { font-size: 18px; font-weight: 600; }
+
+  .ingr { list-style: none; margin: 0; padding: 0; }
+
+  .ingr li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+
+  .ingr li:last-child { border-bottom: none; }
+  .ingr b { font-weight: 600; white-space: nowrap; }
+
+  .steps { list-style: none; display: grid; gap: 10px; margin: 0 0 16px; padding: 0; }
+
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--card);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .step.done { background: var(--green-soft); border-color: var(--green); }
+  .step.done span:last-child { color: var(--muted); text-decoration: line-through; }
+
+  .check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border: 2px solid var(--green-dark);
+    border-radius: 50%;
+    color: var(--green-dark);
+    font-weight: 700;
+  }
+
+  .step.done .check { background: var(--green-dark); color: #FFFFFF; }
+
+  .form { display: grid; gap: 16px; }
+
+  .form label { display: grid; gap: 6px; font-size: 16px; font-weight: 600; }
+
+  .form input, .form select, .form textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    font-size: 16px;
+    font-weight: 400;
+    outline: none;
+  }
+
+  .form textarea { min-height: 160px; resize: vertical; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .ingr-set {
+    margin: 0;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--card);
+  }
+
+  .ingr-set legend { padding: 0 6px; font-size: 17px; font-weight: 700; }
+
+  .ing-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 40px;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .ing-row input { padding: 10px 8px; }
+
+  .btn-remove {
+    width: 40px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--danger);
+    font-size: 24px;
+    cursor: pointer;
+  }
+
+  .error {
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--danger-soft);
+    color: var(--danger);
+    font-weight: 600;
+  }
+
+  .recipe-photo {
+    display: block;
+    width: 100%;
+    max-height: 280px;
+    margin: 0 0 16px;
+    object-fit: cover;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+  }
+
+  .photo-box { display: grid; gap: 10px; }
+  .field-title { margin: 0; font-weight: 600; }
+
+  .photo-preview {
+    display: block;
+    width: 100%;
+    max-height: 240px;
+    object-fit: cover;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+
+  @media (max-width: 360px) {
+    .cat-grid { gap: 10px; }
+    .recipe-title { font-size: 26px; }
+    .ing-row { grid-template-columns: 1.6fr 1fr 1fr 36px; }
+  }
+</style>
+</head>
+<body>
+<main class="app" id="app"></main>
+
+<script>
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) {
+    tg.ready();
+    tg.expand();
+  }
+
+  const KEY = 'recipe-book-v1';
+  const DONE_KEY = 'recipe-book-done-v1';
+  const CATS_KEY = 'recipe-book-cats-v1';
+  const OFFERED_KEY = 'recipe-book-offered-v1';
+  const MAX_PHOTO = 800; // px on the longest side; keeps localStorage usage small
+
+  const CATEGORIES = [
+    { name: 'Выпечка', icon: '🥐', color: '#F6E3C6' },
+    { name: 'Супы', icon: '🍲', color: '#DDEBD6' },
+    { name: 'Горячее', icon: '🍗', color: '#F7D6C2' },
+    { name: 'Салаты', icon: '🥗', color: '#D6EBCF' },
+    { name: 'Десерты', icon: '🍰', color: '#F4D9E1' }
+  ];
+
+  // Colors for user-made categories, used in order
+  const PALETTE = ['#E3E8F6', '#F6F0C6', '#D9EEF0', '#EBDDF2', '#F6DCDC', '#E2F0DC'];
+  const CAT_ICONS = ['🍽️', '🍕', '🍔', '🌮', '🥞', '🧁', '🍩', '🍪', '🥩', '🍣', '🍜', '🥘', '🥦', '🥕', '🍄', '🧀', '🥚', '🍓', '🍎', '🍇', '🥤', '☕', '🍹', '🥪'];
+
+  const SEED = [
+    {
+      title: 'Блины',
+      photo: 'img/blini.jpg',
+      category: 'Выпечка',
+      time: 35,
+      baseServings: 4,
+      ingredients: [
+        { name: 'Молоко', amount: '500', unit: 'мл' },
+        { name: 'Яйца', amount: '2', unit: 'шт' },
+        { name: 'Мука пшеничная', amount: '250', unit: 'г' },
+        { name: 'Сахар', amount: '1', unit: 'ст. л.' },
+        { name: 'Соль', amount: '1', unit: 'щепотка' },
+        { name: 'Растительное масло', amount: '3', unit: 'ст. л.' }
+      ],
+      steps: [
+        'Взбейте яйца с сахаром и солью.',
+        'Влейте половину молока и перемешайте.',
+        'Постепенно добавляйте муку, помешивая, чтобы не было комков.',
+        'Влейте оставшееся молоко и масло. Тесто должно быть жидким.',
+        'Дайте тесту постоять 15 минут.',
+        'Жарьте на хорошо разогретой сковороде по минуте с каждой стороны.'
+      ]
+    },
+    {
+      title: 'Борщ',
+      photo: 'img/borsch.jpg',
+      category: 'Супы',
+      time: 150,
+      baseServings: 4,
+      ingredients: [
+        { name: 'Говядина на кости', amount: '500', unit: 'г' },
+        { name: 'Свёкла', amount: '2', unit: 'шт' },
+        { name: 'Картофель', amount: '3', unit: 'шт' },
+        { name: 'Капуста белокочанная', amount: '300', unit: 'г' },
+        { name: 'Морковь', amount: '1', unit: 'шт' },
+        { name: 'Лук репчатый', amount: '1', unit: 'шт' },
+        { name: 'Томатная паста', amount: '2', unit: 'ст. л.' },
+        { name: 'Чеснок', amount: '2', unit: 'зубчика' },
+        { name: 'Соль', amount: 'по вкусу', unit: '' },
+        { name: 'Зелень', amount: 'по вкусу', unit: '' }
+      ],
+      steps: [
+        'Отварите мясо в 2 литрах воды около 1,5 часов, снимая пену.',
+        'Нарежьте картофель и добавьте в бульон.',
+        'Натрите свёклу и морковь, нарежьте лук. Обжарьте всё с томатной пастой 5 минут.',
+        'Добавьте в бульон капусту. Через 10 минут добавьте зажарку.',
+        'Варите ещё 10 минут, добавьте чеснок, соль и зелень.'
+      ]
+    },
+    {
+      title: 'Салат «Оливье»',
+      photo: 'img/olivier.jpg',
+      category: 'Салаты',
+      time: 40,
+      baseServings: 4,
+      ingredients: [
+        { name: 'Картофель', amount: '3', unit: 'шт' },
+        { name: 'Морковь', amount: '1', unit: 'шт' },
+        { name: 'Яйца', amount: '3', unit: 'шт' },
+        { name: 'Колбаса варёная', amount: '250', unit: 'г' },
+        { name: 'Огурцы солёные', amount: '2', unit: 'шт' },
+        { name: 'Горошек зелёный', amount: '1', unit: 'банка' },
+        { name: 'Майонез', amount: '150', unit: 'г' },
+        { name: 'Соль', amount: 'по вкусу', unit: '' }
+      ],
+      steps: [
+        'Отварите картофель, морковь и яйца до готовности. Остудите.',
+        'Нарежьте все ингредиенты кубиками примерно 1 см.',
+        'Смешайте в большой миске, добавьте горошек без жидкости.',
+        'Заправьте майонезом, посолите и аккуратно перемешайте.'
+      ]
+    },
+    {
+      title: 'Шарлотка',
+      photo: 'img/sharlotka.jpg',
+      category: 'Десерты',
+      time: 70,
+      baseServings: 6,
+      ingredients: [
+        { name: 'Яйца', amount: '4', unit: 'шт' },
+        { name: 'Сахар', amount: '200', unit: 'г' },
+        { name: 'Мука пшеничная', amount: '200', unit: 'г' },
+        { name: 'Яблоки', amount: '4', unit: 'шт' },
+        { name: 'Сливочное масло', amount: '50', unit: 'г' },
+        { name: 'Разрыхлитель', amount: '1', unit: 'ч. л.' },
+        { name: 'Соль', amount: '1', unit: 'щепотка' }
+      ],
+      steps: [
+        'Взбейте яйца с сахаром и солью до пышной массы.',
+        'Аккуратно введите муку с разрыхлителем.',
+        'Яблоки очистите и нарежьте дольками.',
+        'Смажьте форму маслом, выложите яблоки и залейте тестом.',
+        'Выпекайте при 180 °C около 40 минут. Проверьте деревянной палочкой.'
+      ]
+    },
+    {
+      title: 'Окрошка',
+      category: 'Супы',
+      time: 40,
+      baseServings: 4,
+      ingredients: [
+        { name: 'Картофель', amount: '3', unit: 'шт' },
+        { name: 'Яйца', amount: '2', unit: 'шт' },
+        { name: 'Огурцы свежие', amount: '2', unit: 'шт' },
+        { name: 'Редис', amount: '6', unit: 'шт' },
+        { name: 'Колбаса варёная', amount: '200', unit: 'г' },
+        { name: 'Зелёный лук', amount: '1', unit: 'пучок' },
+        { name: 'Укроп', amount: '1', unit: 'пучок' },
+        { name: 'Квас', amount: '1,5', unit: 'л' },
+        { name: 'Сметана', amount: '200', unit: 'г' },
+        { name: 'Соль', amount: 'по вкусу', unit: '' }
+      ],
+      steps: [
+        'Отварите картофель и яйца, остудите и нарежьте кубиками.',
+        'Нарежьте огурцы, редис, колбасу и зелень.',
+        'Смешайте все продукты в кастрюле.',
+        'Залейте квасом, добавьте сметану и посолите. Подавайте холодной.'
+      ]
+    },
+    {
+      title: 'Куриные котлеты',
+      category: 'Горячее',
+      time: 45,
+      baseServings: 4,
+      ingredients: [
+        { name: 'Куриный фарш', amount: '500', unit: 'г' },
+        { name: 'Лук репчатый', amount: '1', unit: 'шт' },
+        { name: 'Белый хлеб', amount: '2', unit: 'ломтика' },
+        { name: 'Молоко', amount: '100', unit: 'мл' },
+        { name: 'Яйцо', amount: '1', unit: 'шт' },
+        { name: 'Соль', amount: '1', unit: 'ч. л.' },
+        { name: 'Перец чёрный молотый', amount: 'по вкусу', unit: '' },
+        { name: 'Растительное масло', amount: '3', unit: 'ст. л.' }
+      ],
+      steps: [
+        'Замочите хлеб в молоке на 5 минут, затем отожмите.',
+        'Мелко нарубите или натрите лук.',
+        'Смешайте фарш, лук, хлеб, яйцо, соль и перец. Сформируйте котлеты.',
+        'Обжаривайте на среднем огне по 4–5 минут с каждой стороны.',
+        'Накройте крышкой и доведите до готовности ещё около 10 минут.'
+      ]
+    },
+    {
+      title: 'Греческий салат',
+      category: 'Салаты',
+      time: 15,
+      baseServings: 4,
+      ingredients: [
+        { name: 'Помидоры', amount: '3', unit: 'шт' },
+        { name: 'Огурцы', amount: '2', unit: 'шт' },
+        { name: 'Перец болгарский', amount: '1', unit: 'шт' },
+        { name: 'Красный лук', amount: '0,5', unit: 'шт' },
+        { name: 'Сыр фета', amount: '150', unit: 'г' },
+        { name: 'Маслины без косточек', amount: '100', unit: 'г' },
+        { name: 'Оливковое масло', amount: '3', unit: 'ст. л.' },
+        { name: 'Орегано сушёный', amount: '1', unit: 'ч. л.' },
+        { name: 'Соль', amount: 'по вкусу', unit: '' }
+      ],
+      steps: [
+        'Нарежьте помидоры, огурцы и перец крупными кусками.',
+        'Лук нарежьте тонкими полукольцами.',
+        'Выложите овощи в миску и добавьте маслины.',
+        'Сверху положите фету целым куском, полейте маслом, посыпьте орегано и посолите.'
+      ]
+    },
+    {
+      title: 'Панна котта',
+      category: 'Десерты',
+      time: 20,
+      baseServings: 4,
+      ingredients: [
+        { name: 'Сливки 33%', amount: '400', unit: 'мл' },
+        { name: 'Сахар', amount: '60', unit: 'г' },
+        { name: 'Ванильный сахар', amount: '1', unit: 'пакетик' },
+        { name: 'Желатин', amount: '10', unit: 'г' },
+        { name: 'Греческий йогурт', amount: '150', unit: 'г' }
+      ],
+      steps: [
+        'Замочите желатин в 3 ст. л. холодной воды на 10 минут.',
+        'Нагрейте сливки с сахаром и ванильным сахаром, не доводя до кипения.',
+        'Добавьте желатин и размешайте до полного растворения.',
+        'Остудите немного, смешайте с йогуртом и разлейте по формочкам.',
+        'Уберите в холодильник минимум на 4 часа.'
+      ]
+    }
+  ];
+
+  const state = {
+    view: 'home',
+    history: [],
+    category: '',
+    query: '',
+    recipeId: '',
+    editingId: '',
+    servings: 4,
+    draft: null,
+    error: '',
+    confirmDelete: false
+  };
+
+  let recipes = [];
+  let done = {};
+  let customCats = [];
+  let lastView = '';
+
+  const app = document.getElementById('app');
+
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+  }
+
+  function readJSON(key, fallback) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key));
+      return value ?? fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function writeJSON(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Seed recipes are offered once: new ones reach existing users, deleted ones stay deleted
+  function missingSeeds(list, offered) {
+    const add = SEED.filter(s => !offered.includes(s.title) && !list.some(r => r.title === s.title));
+    return { add, offered: SEED.map(s => s.title) };
+  }
+
+  function loadRecipes() {
+    const saved = readJSON(KEY, []);
+    const list = Array.isArray(saved) ? saved : [];
+    const { add, offered } = missingSeeds(list, readJSON(OFFERED_KEY, []));
+    const next = [...list, ...add.map(r => ({ ...r, id: uid() }))];
+    if (add.length) writeJSON(KEY, next);
+    writeJSON(OFFERED_KEY, offered);
+    return next;
+  }
+
+  function allCategories() {
+    return [...CATEGORIES, ...customCats];
+  }
+
+  function catOf(name) {
+    return allCategories().find(c => c.name === name) || CATEGORIES[0];
+  }
+
+  function fmtTime(minutes) {
+    if (!minutes) return 'время не указано';
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return [h ? `${h} ч` : '', m ? `${m} мин` : ''].filter(Boolean).join(' ');
+  }
+
+  function portions(n) {
+    const m10 = n % 10;
+    const m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return 'порция';
+    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'порции';
+    return 'порций';
+  }
+
+  function fmtNum(n) {
+    return String(Math.round(n * 100) / 100).replace('.', ',');
+  }
+
+  function scale(amount, factor) {
+    const text = String(amount).trim();
+    const fraction = text.match(/^(\d+)\s*\/\s*(\d+)$/);
+    const n = fraction ? fraction[1] / fraction[2] : parseFloat(text.replace(',', '.'));
+    return isNaN(n) ? text : fmtNum(n * factor);
+  }
+
+  // Scales the photo down and re-encodes it as JPEG so the data URL stays small
+  function compressPhoto(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, MAX_PHOTO / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * k);
+        canvas.height = Math.round(img.height * k);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('bad image'));
+      };
+      img.src = url;
+    });
+  }
+
+  function blankDraft(category) {
+    return {
+      name: '',
+      category: category || CATEGORIES[0].name,
+      time: '',
+      servings: '4',
+      steps: '',
+      photo: '',
+      ingredients: [{ name: '', amount: '', unit: '' }]
+    };
+  }
+
+  function draftOf(r) {
+    return {
+      name: r.title,
+      category: r.category,
+      time: String(r.time || ''),
+      servings: String(r.baseServings),
+      steps: r.steps.join('\n'),
+      photo: r.photo || '',
+      ingredients: r.ingredients.map(i => ({ ...i }))
+    };
+  }
+
+  function readForm() {
+    const photo = state.draft ? state.draft.photo : '';
+    state.draft = {
+      name: document.getElementById('f-name').value,
+      category: document.getElementById('f-cat').value,
+      time: document.getElementById('f-time').value,
+      servings: document.getElementById('f-serv').value,
+      steps: document.getElementById('f-steps').value,
+      photo,
+      ingredients: [...document.querySelectorAll('#ing-list .ing-row')].map(row => ({
+        name: row.querySelector('[data-f="name"]').value,
+        amount: row.querySelector('[data-f="amount"]').value,
+        unit: row.querySelector('[data-f="unit"]').value
+      }))
+    };
+    return state.draft;
+  }
+
+  function go(view, patch = {}, { replace = false } = {}) {
+    if (!replace) state.history = [...state.history, { view: state.view, category: state.category, recipeId: state.recipeId, servings: state.servings }];
+    Object.assign(state, { view, error: '', confirmDelete: false }, patch);
+    render();
+  }
+
+  function goBack() {
+    if (state.view === 'home') return;
+    const prev = state.history.at(-1) || { view: 'home' };
+    state.history = state.history.slice(0, -1);
+    Object.assign(state, prev, { error: '', confirmDelete: false });
+    render();
+  }
+
+  function recipeItem(r) {
+    return `
+      <button class="recipe-item" data-action="open-recipe" data-id="${esc(r.id)}">
+        ${r.photo ? `<img class="ri-photo" src="${esc(r.photo)}" alt="">` : ''}
+        <span class="ri-text">
+          <span class="ri-title">${esc(r.title)}</span>
+          <span class="ri-meta">${esc(r.category)} · ${esc(fmtTime(r.time))}</span>
+        </span>
+      </button>`;
+  }
+
+  function recipeList(items) {
+    return `<div class="recipe-list">${items.map(recipeItem).join('')}</div>`;
+  }
+
+  function resultsHtml() {
+    const q = state.query.trim().toLowerCase();
+    if (!q) {
+      const cards = allCategories().map(c => `
+        <button class="cat-card" style="background:${c.color}" data-action="open-cat" data-cat="${esc(c.name)}">
+          <span class="cat-icon">${c.icon}</span>
+          <span class="cat-name">${esc(c.name)}</span>
+          <span class="cat-count">${recipes.filter(r => r.category === c.name).length} рец.</span>
+        </button>`).join('');
+      return `<div class="cat-grid">${cards}</div>`;
+    }
+    const found = recipes.filter(r =>
+      r.title.toLowerCase().includes(q) ||
+      r.ingredients.some(i => i.name.toLowerCase().includes(q))
+    );
+    return found.length
+      ? recipeList(found)
+      : '<p class="empty">Ничего не нашлось. Попробуйте другое слово.</p>';
+  }
+
+  function renderHome() {
+    return `
+      <header class="head">
+        <h1>Книга рецептов</h1>
+        <p class="sub">Любимые рецепты в одном месте</p>
+      </header>
+      <input id="search" class="search" type="search" placeholder="Поиск по названию или ингредиенту"
+             autocomplete="off" value="${esc(state.query)}">
+      <div id="results">${resultsHtml()}</div>
+      <div class="actions">
+        <button class="btn btn-primary" data-action="new">+ Добавить новый рецепт</button>
+        <button class="btn btn-soft" data-action="new-cat">+ Новая категория</button>
+      </div>`;
+  }
+
+  function renderCategory() {
+    const cat = catOf(state.category);
+    const items = recipes.filter(r => r.category === state.category);
+    return `
+      <header class="head">
+        <h1>${cat.icon} ${esc(cat.name)}</h1>
+        <p class="sub">Рецептов: ${items.length}</p>
+      </header>
+      ${items.length ? recipeList(items) : '<p class="empty">В этой категории пока нет рецептов.</p>'}
+      <div class="actions">
+        <button class="btn btn-primary" data-action="new">+ Добавить новый рецепт</button>
+      </div>`;
+  }
+
+  function renderCatForm() {
+    const d = state.catDraft;
+    const icons = CAT_ICONS.map(e =>
+      `<button type="button" class="emoji${e === d.icon ? ' on' : ''}" data-action="pick-icon" data-icon="${e}" aria-label="Эмодзи ${e}">${e}</button>`
+    ).join('');
+    return `
+      <header class="head">
+        <h1>Новая категория</h1>
+      </header>
+      ${state.error ? `<p class="error">${esc(state.error)}</p>` : ''}
+      <div class="form">
+        <label>Название
+          <input id="c-name" maxlength="30" placeholder="Например, Закуски" value="${esc(d.name)}">
+        </label>
+        <p class="field-title">Эмодзи</p>
+        <div class="emoji-grid">${icons}</div>
+        <div class="actions">
+          <button class="btn btn-primary" data-action="save-cat">Создать категорию</button>
+          <button class="btn btn-ghost" data-action="cancel">Отмена</button>
+        </div>
+      </div>`;
+  }
+
+  function renderRecipe() {
+    const r = recipes.find(x => x.id === state.recipeId);
+    if (!r) {
+      state.view = 'home';
+      return renderHome();
+    }
+    const factor = state.servings / r.baseServings;
+    const doneList = done[r.id] || [];
+    const cat = catOf(r.category);
+    return `
+      ${r.photo ? `<img class="recipe-photo" src="${esc(r.photo)}" alt="${esc(r.title)}">` : ''}
+      <span class="tag" style="background:${cat.color}">${cat.icon} ${esc(r.category)}</span>
+      <h1 class="recipe-title">${esc(r.title)}</h1>
+      <p class="meta">⏱ ${esc(fmtTime(r.time))}</p>
+
+      <section class="card">
+        <h2>Ингредиенты</h2>
+        <div class="servings">
+          <button class="btn btn-soft btn-round" data-action="serv-dec" aria-label="Меньше порций">−</button>
+          <span class="serv-val">${state.servings} ${portions(state.servings)}</span>
+          <button class="btn btn-soft btn-round" data-action="serv-inc" aria-label="Больше порций">+</button>
+        </div>
+        <ul class="ingr">
+          ${r.ingredients.map(i => `
+            <li>
+              <span>${esc(i.name)}</span>
+              <b>${esc(scale(i.amount, factor))} ${esc(i.unit)}</b>
+            </li>`).join('')}
+        </ul>
+      </section>
+
+      <section>
+        <h2>Приготовление</h2>
+        <ol class="steps">
+          ${r.steps.map((s, i) => {
+            const isDone = doneList.includes(i);
+            return `
+            <li class="step${isDone ? ' done' : ''}" data-action="toggle-step" data-index="${i}">
+              <span class="check">${isDone ? '✓' : ''}</span>
+              <span>${esc(s)}</span>
+            </li>`;
+          }).join('')}
+        </ol>
+      </section>
+
+      <div class="actions">
+        ${doneList.length ? '<button class="btn btn-ghost" data-action="reset-done">Сбросить отметки</button>' : ''}
+        <button class="btn btn-soft" data-action="edit">Редактировать</button>
+        <button class="btn btn-danger" data-action="delete">${state.confirmDelete ? 'Точно удалить?' : 'Удалить рецепт'}</button>
+      </div>`;
+  }
+
+  function renderForm() {
+    const d = state.draft;
+    const options = allCategories().map(c =>
+      `<option value="${esc(c.name)}"${c.name === d.category ? ' selected' : ''}>${c.icon} ${esc(c.name)}</option>`
+    ).join('');
+    const rows = d.ingredients.map((i, idx) => `
+      <div class="ing-row">
+        <input data-f="name" placeholder="Продукт" value="${esc(i.name)}" aria-label="Название ингредиента">
+        <input data-f="amount" placeholder="Кол-во" inputmode="decimal" value="${esc(i.amount)}" aria-label="Количество">
+        <input data-f="unit" placeholder="Ед." value="${esc(i.unit)}" aria-label="Единица измерения">
+        <button class="btn-remove" data-action="remove-row" data-index="${idx}" aria-label="Удалить строку">×</button>
+      </div>`).join('');
+    return `
+      <header class="head">
+        <h1>${state.editingId ? 'Редактирование' : 'Новый рецепт'}</h1>
+      </header>
+      ${state.error ? `<p class="error">${esc(state.error)}</p>` : ''}
+      <div class="form">
+        <label>Название
+          <input id="f-name" placeholder="Например, Блины" value="${esc(d.name)}">
+        </label>
+        <div class="photo-box">
+          <p class="field-title">Фото</p>
+          ${d.photo ? `<img class="photo-preview" src="${esc(d.photo)}" alt="Фото рецепта">` : '<p class="sub">Фото пока не добавлено</p>'}
+          <button class="btn btn-soft" data-action="pick-photo">${d.photo ? 'Заменить фото' : 'Добавить фото'}</button>
+          ${d.photo ? '<button class="btn btn-ghost" data-action="remove-photo">Убрать фото</button>' : ''}
+          <input id="f-photo" type="file" accept="image/*" hidden>
+        </div>
+        <label>Категория
+          <select id="f-cat">${options}</select>
+        </label>
+        <div class="row2">
+          <label>Время, мин
+            <input id="f-time" type="number" inputmode="numeric" min="0" value="${esc(d.time)}">
+          </label>
+          <label>Порций
+            <input id="f-serv" type="number" inputmode="numeric" min="1" value="${esc(d.servings)}">
+          </label>
+        </div>
+        <fieldset class="ingr-set">
+          <legend>Ингредиенты</legend>
+          <div id="ing-list">${rows}</div>
+          <button class="btn btn-soft" data-action="add-row">+ Добавить ингредиент</button>
+        </fieldset>
+        <label>Приготовление
+          <textarea id="f-steps" rows="8" placeholder="Каждый шаг — с новой строки">${esc(d.steps)}</textarea>
+        </label>
+        <div class="actions">
+          <button class="btn btn-primary" data-action="save">Сохранить</button>
+          <button class="btn btn-ghost" data-action="cancel">Отмена</button>
+        </div>
+      </div>`;
+  }
+
+  function render() {
+    const views = { home: renderHome, category: renderCategory, recipe: renderRecipe, form: renderForm, 'cat-form': renderCatForm };
+    const body = views[state.view]();
+    const back = state.view === 'home' ? '' : '<div class="top"><button class="back" data-action="back">← Назад</button></div>';
+    app.innerHTML = back + body;
+
+    if (state.view !== lastView) {
+      window.scrollTo(0, 0);
+      lastView = state.view;
+    }
+    if (tg && tg.BackButton) {
+      if (state.view === 'home') tg.BackButton.hide();
+      else tg.BackButton.show();
+    }
+  }
+
+  function fail(message) {
+    state.error = message;
+    render();
+  }
+
+  // Turns raw form values into a recipe, or { error } with the first problem found
+  function parseRecipe(d) {
+    const title = d.name.trim();
+    const time = d.time.trim();
+    const servings = d.servings.trim();
+    const ingredients = d.ingredients
+      .map(i => ({ name: i.name.trim(), amount: i.amount.trim().replace(',', '.'), unit: i.unit.trim() }))
+      .filter(i => i.name);
+    const steps = d.steps.split('\n').map(s => s.trim()).filter(Boolean);
+
+    if (!title) return { error: 'Введите название рецепта.' };
+    if (title.length > 80) return { error: 'Название не длиннее 80 символов.' };
+    if (!allCategories().some(c => c.name === d.category)) return { error: 'Выберите категорию.' };
+    if (time && !/^\d+$/.test(time)) return { error: 'Время укажите целым числом минут.' };
+    if (!/^\d+$/.test(servings) || Number(servings) < 1) return { error: 'Порций должно быть не меньше одной.' };
+    if (!ingredients.length) return { error: 'Добавьте хотя бы один ингредиент.' };
+    if (!steps.length) return { error: 'Опишите приготовление.' };
+
+    return {
+      recipe: {
+        title,
+        category: d.category,
+        time: Number(time) || 0,
+        baseServings: Number(servings),
+        ingredients,
+        steps,
+        photo: d.photo
+      }
+    };
+  }
+
+  function parseCategory(c, existing) {
+    const name = c.name.trim();
+    if (!name) return { error: 'Введите название категории.' };
+    if (name.length > 30) return { error: 'Название категории не длиннее 30 символов.' };
+    if (existing.some(x => x.name.toLowerCase() === name.toLowerCase())) return { error: 'Такая категория уже есть.' };
+    if (!c.icon) return { error: 'Выберите эмодзи.' };
+    return { category: { name, icon: c.icon, color: PALETTE[(existing.length - CATEGORIES.length) % PALETTE.length] } };
+  }
+
+  function readCatForm() {
+    state.catDraft.name = document.getElementById('c-name').value;
+    return state.catDraft;
+  }
+
+  function saveRecipe() {
+    const parsed = parseRecipe(readForm());
+    if (parsed.error) return fail(parsed.error);
+    const recipe = { ...parsed.recipe, id: state.editingId || uid() };
+
+    const next = state.editingId
+      ? recipes.map(r => (r.id === recipe.id ? recipe : r))
+      : [recipe, ...recipes];
+    if (!writeJSON(KEY, next)) {
+      return fail('Не удалось сохранить: не хватает места в хранилище. Уберите фото у других рецептов.');
+    }
+    recipes = next;
+
+    if (state.editingId) {
+      delete done[recipe.id];
+      writeJSON(DONE_KEY, done);
+      state.history = state.history.slice(0, -1); // drop the recipe screen the edit came from
+    }
+
+    go('recipe', { recipeId: recipe.id, servings: recipe.baseServings }, { replace: true });
+  }
+
+  app.addEventListener('click', e => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+
+    switch (el.dataset.action) {
+      case 'back':
+        goBack();
+        break;
+
+      case 'open-cat':
+        go('category', { category: el.dataset.cat });
+        break;
+
+      case 'open-recipe': {
+        const r = recipes.find(x => x.id === el.dataset.id);
+        if (r) go('recipe', { recipeId: r.id, servings: r.baseServings });
+        break;
+      }
+
+      case 'new': {
+        go('form', {
+          draft: blankDraft(state.view === 'category' ? state.category : ''),
+          editingId: ''
+        });
+        break;
+      }
+
+      case 'edit': {
+        const r = recipes.find(x => x.id === state.recipeId);
+        if (r) go('form', { draft: draftOf(r), editingId: r.id });
+        break;
+      }
+
+      case 'cancel':
+        goBack();
+        break;
+
+      case 'save':
+        saveRecipe();
+        break;
+
+      case 'serv-inc':
+        state.servings = Math.min(50, state.servings + 1);
+        render();
+        break;
+
+      case 'serv-dec':
+        state.servings = Math.max(1, state.servings - 1);
+        render();
+        break;
+
+      case 'toggle-step': {
+        const idx = Number(el.dataset.index);
+        const list = done[state.recipeId] || [];
+        done[state.recipeId] = list.includes(idx) ? list.filter(i => i !== idx) : [...list, idx];
+        writeJSON(DONE_KEY, done);
+        render();
+        break;
+      }
+
+      case 'reset-done':
+        delete done[state.recipeId];
+        writeJSON(DONE_KEY, done);
+        render();
+        break;
+
+      case 'delete': {
+        if (!state.confirmDelete) {
+          state.confirmDelete = true;
+          render();
+          break;
+        }
+        recipes = recipes.filter(r => r.id !== state.recipeId);
+        delete done[state.recipeId];
+        writeJSON(KEY, recipes);
+        writeJSON(DONE_KEY, done);
+        state.query = '';
+        goBack();
+        break;
+      }
+
+      case 'new-cat':
+        go('cat-form', { catDraft: { name: '', icon: CAT_ICONS[0] } });
+        break;
+
+      case 'pick-icon':
+        readCatForm();
+        state.catDraft.icon = el.dataset.icon;
+        render();
+        break;
+
+      case 'save-cat': {
+        const res = parseCategory(readCatForm(), allCategories());
+        if (res.error) return fail(res.error);
+        const next = [...customCats, res.category];
+        if (!writeJSON(CATS_KEY, next)) return fail('Не удалось сохранить категорию: не хватает места в хранилище.');
+        customCats = next;
+        goBack();
+        break;
+      }
+
+      case 'pick-photo':
+        document.getElementById('f-photo').click();
+        break;
+
+      case 'remove-photo':
+        readForm();
+        state.draft.photo = '';
+        render();
+        break;
+
+      case 'add-row': {
+        const d = readForm();
+        d.ingredients.push({ name: '', amount: '', unit: '' });
+        render();
+        break;
+      }
+
+      case 'remove-row': {
+        const d = readForm();
+        const idx = Number(el.dataset.index);
+        if (d.ingredients.length > 1) d.ingredients.splice(idx, 1);
+        else d.ingredients = [{ name: '', amount: '', unit: '' }];
+        render();
+        break;
+      }
+    }
+  });
+
+  app.addEventListener('input', e => {
+    if (e.target.id !== 'search') return;
+    state.query = e.target.value;
+    document.getElementById('results').innerHTML = resultsHtml();
+  });
+
+  app.addEventListener('change', e => {
+    const file = e.target.files && e.target.files[0];
+    if (e.target.id !== 'f-photo' || !file || state.view !== 'form') return;
+    readForm();
+    compressPhoto(file)
+      .then(photo => {
+        state.draft.photo = photo;
+        state.error = '';
+        render();
+      })
+      .catch(() => fail('Не удалось открыть фото. Выберите другой файл.'));
+  });
+
+  if (tg && tg.BackButton) tg.BackButton.onClick(goBack);
+
+  recipes = loadRecipes();
+  customCats = readJSON(CATS_KEY, []);
+  done = readJSON(DONE_KEY, {});
+  render();
+</script>
+</body>
+</html>
