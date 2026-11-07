@@ -17,9 +17,9 @@ function fakeFetch({ page = '<p>Pancakes</p>', reply = '{"title":"Pancakes","ing
   return impl;
 }
 
-test('pickModel: links go to Haiku, screenshots to Sonnet', () => {
+test('pickModel: links and screenshots both go to Haiku', () => {
   assert.equal(pickModel({ text: 'x' }), 'claude-haiku-5-5');
-  assert.equal(pickModel({ imageBase64: 'AAAA', mediaType: 'image/png' }), 'claude-sonnet-5-5');
+  assert.equal(pickModel({ imageBase64: 'AAAA', mediaType: 'image/png' }), 'claude-haiku-5-5');
 });
 
 test('buildContent: screenshot becomes an image block followed by the prompt', () => {
@@ -52,11 +52,11 @@ test('extractDraft: link is fetched, sent to Haiku, and parsed', async () => {
   assert.match(api.body.messages[0].content[0].text, /Pancakes/);
 });
 
-test('extractDraft: screenshot goes straight to Sonnet', async () => {
+test('extractDraft: screenshot goes straight to the image model', async () => {
   const fetchImpl = fakeFetch();
   await extractDraft({ imageBase64: 'AAAA', mediaType: 'image/jpeg' }, 'key', fetchImpl);
   assert.equal(fetchImpl.calls.length, 1);
-  assert.equal(fetchImpl.calls[0].body.model, 'claude-sonnet-5-5');
+  assert.equal(fetchImpl.calls[0].body.model, 'claude-haiku-5-5');
 });
 
 test('extractDraft: pasted text goes straight to Haiku without fetching a page', async () => {
