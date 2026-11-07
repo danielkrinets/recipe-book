@@ -52,7 +52,7 @@ function fakeStore({ saved = true, fail = false } = {}) {
 }
 
 // Minimal stand-in for Vercel's req/res
-async function call({ method = 'POST', secret = SECRET, body = {}, extract, video, tg, store = fakeStore() }) {
+async function call({ method = 'POST', secret = SECRET, body = {}, extract, video, download, tg, store = fakeStore() }) {
   const res = {
     statusCode: 200,
     body: null,
@@ -61,7 +61,7 @@ async function call({ method = 'POST', secret = SECRET, body = {}, extract, vide
   };
   const headers = secret === null ? {} : { 'x-telegram-bot-api-secret-token': secret };
   const deferred = [];
-  await createHandler({ extract, video, tg, store, defer: (p) => deferred.push(p) })({ method, headers, body }, res);
+  await createHandler({ extract, video, download, tg, store, defer: (p) => deferred.push(p) })({ method, headers, body }, res);
   await Promise.all(deferred);
   return res;
 }
@@ -215,4 +215,26 @@ test('a video over 20 MB is refused before downloading', async () => {
   await call({ body: update({ video: { file_id: 'vid', file_size: 30_000_000 } }), video: async () => assert.fail(), tg });
   assert.deepEqual(tg.calls.map((c) => c.method), ['sendMessage']);
   assert.match(tg.calls[0].text, /больше 20 МБ/);
+});
+
+test('a video link is downloaded and read like a video file', async () => {
+  const tg = fakeTelegram();
+  const extracted = [];
+  const download = async (url) => ({ bytes: Buffer.from(url), caption: 'Борщ за 30 минут' });
+  const video = async () => ({ frames: [Buffer.from('f1')], transcript: '' });
+  const extract = async (input) => { extracted.push(input); return DRAFT; };
+  await call({ body: update({ text: 'https://www.instagram.com/reel/abc/' }), extract, video, download, tg });
+  assert.equal(tg.calls[0].text, 'Смотрю видео, это займёт до минуты…');
+  assert.equal(extracted[0].images.length, 1);
+  assert.equal(extracted[0].text, 'Caption: Борщ за 30 минут');
+});
+
+test('when a video link cannot be downloaded, the page text is used instead', async () => {
+  const tg = fakeTelegram();
+  const extracted = [];
+  const download = async () => { throw new Error('login required'); };
+  const extract = async (input) => { extracted.push(input); return DRAFT; };
+  await call({ body: update({ text: 'https://youtu.be/xyz' }), extract, download, tg });
+  assert.deepEqual(extracted, [{ url: 'https://youtu.be/xyz' }]);
+  assert.match(tg.calls.at(-1).text, /Блины/);
 });

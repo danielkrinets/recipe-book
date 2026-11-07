@@ -4,6 +4,7 @@ const telegram = require('../lib/telegram');
 const store = require('../lib/store');
 const { validUrl } = require('../lib/url');
 const { readVideo } = require('../lib/video');
+const { isVideoLink, downloadVideo } = require('../lib/download');
 const { waitUntil } = require('@vercel/functions');
 
 const GREETINGS = {
@@ -52,22 +53,26 @@ function formatDraft(draft) {
   return text.slice(0, 4000); // Telegram caps one message at 4096 characters
 }
 
-// Returns the extracted draft and, for a photo, the bytes to keep as the recipe photo
-async function makeDraft(message, { extract, video: readFrames, tg, token }) {
+async function draftFromVideo(bytes, caption, { extract, video: readFrames }) {
+  const { frames, transcript } = await readFrames(bytes);
+  if (!frames.length) throw new Error('no frames');
+  const draft = await extract({
+    images: frames.map((f) => ({ base64: f.toString('base64'), mediaType: 'image/jpeg' })),
+    text: [caption && `Caption: ${caption}`, transcript && `Speech transcript: ${transcript}`]
+      .filter(Boolean).join('\n\n') || 'The video has no caption and no speech.',
+  });
+  // shortcut: a frame near the end usually shows the finished dish; let the user pick one if it is often wrong
+  return { draft, photo: { bytes: frames[Math.floor(frames.length * 0.8)], mediaType: 'image/jpeg' } };
+}
+
+// Returns the extracted draft and, for a photo or video, the bytes to keep as the recipe photo
+async function makeDraft(message, deps) {
+  const { extract, download, tg, token } = deps;
   const text = (message.text || '').trim();
   const video = videoOf(message);
   if (video) {
     const file = await tg.getFile(token, video.file_id);
-    const { frames, transcript } = await readFrames(await tg.downloadFile(token, file.file_path));
-    if (!frames.length) throw new Error('no frames');
-    const caption = (message.caption || '').trim();
-    const draft = await extract({
-      images: frames.map((f) => ({ base64: f.toString('base64'), mediaType: 'image/jpeg' })),
-      text: [caption && `Caption: ${caption}`, transcript && `Speech transcript: ${transcript}`]
-        .filter(Boolean).join('\n\n') || 'The video has no caption and no speech.',
-    });
-    // shortcut: a frame near the end usually shows the finished dish; let the user pick one if it is often wrong
-    return { draft, photo: { bytes: frames[Math.floor(frames.length * 0.8)], mediaType: 'image/jpeg' } };
+    return draftFromVideo(await tg.downloadFile(token, file.file_path), (message.caption || '').trim(), deps);
   }
   if (message.photo) {
     const photo = [...message.photo].reverse().find((p) => (p.file_size || 0) <= MAX_PHOTO_BYTES);
@@ -80,6 +85,14 @@ async function makeDraft(message, { extract, video: readFrames, tg, token }) {
   }
   if (/^https?:\/\/\S+$/i.test(text)) {
     if (!validUrl(text)) throw new Error('blocked url');
+    if (isVideoLink(text)) {
+      try {
+        const { bytes, caption } = await download(text);
+        return await draftFromVideo(bytes, caption, deps);
+      } catch (err) {
+        console.error('video link failed, reading the page instead', err.message);
+      }
+    }
     return { draft: await extract({ url: text }), photo: null };
   }
   if (text.length > MAX_TEXT) throw new Error('text too long');
@@ -100,7 +113,7 @@ async function handleMessage(message, deps) {
   if (!message.photo && !video && !text) return;
   if (video && (video.file_size || 0) > MAX_VIDEO_BYTES) return say(VIDEO_TOO_LARGE);
 
-  await say(video ? 'Смотрю видео, это займёт до минуты…' : 'Читаю рецепт…');
+  await say(video || isVideoLink(text) ? 'Смотрю видео, это займёт до минуты…' : 'Читаю рецепт…');
   let made;
   try {
     made = await makeDraft(message, deps);
@@ -134,6 +147,7 @@ async function handleCallback(query, deps) {
 function createHandler({
   extract = (input) => extractDraft(input, process.env.ANTHROPIC_API_KEY),
   video = (bytes) => readVideo(bytes, process.env.GROQ_API_KEY),
+  download = downloadVideo,
   tg = telegram,
   store: storage = store,
   defer = waitUntil,
@@ -145,7 +159,7 @@ function createHandler({
     }
 
     const body = req.body || {};
-    const deps = { extract, video, tg, store: storage, token: process.env.TELEGRAM_BOT_TOKEN };
+    const deps = { extract, video, download, tg, store: storage, token: process.env.TELEGRAM_BOT_TOKEN };
     const work = (async () => {
       if (body.callback_query) await handleCallback(body.callback_query, deps);
       else if (body.message && body.message.chat) await handleMessage(body.message, deps);
