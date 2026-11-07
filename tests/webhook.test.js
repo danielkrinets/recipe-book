@@ -52,7 +52,7 @@ function fakeStore({ saved = true, fail = false } = {}) {
 }
 
 // Minimal stand-in for Vercel's req/res
-async function call({ method = 'POST', secret = SECRET, body = {}, extract, tg, store = fakeStore() }) {
+async function call({ method = 'POST', secret = SECRET, body = {}, extract, video, tg, store = fakeStore() }) {
   const res = {
     statusCode: 200,
     body: null,
@@ -60,7 +60,9 @@ async function call({ method = 'POST', secret = SECRET, body = {}, extract, tg, 
     json(data) { this.body = data; return this; },
   };
   const headers = secret === null ? {} : { 'x-telegram-bot-api-secret-token': secret };
-  await createHandler({ extract, tg, store })({ method, headers, body }, res);
+  const deferred = [];
+  await createHandler({ extract, video, tg, store, defer: (p) => deferred.push(p) })({ method, headers, body }, res);
+  await Promise.all(deferred);
   return res;
 }
 
@@ -190,4 +192,27 @@ test('a storage failure tells the user to retry and still returns 200', async ()
   const res = await call({ body: update({ text: 'Блины' }), extract: async () => DRAFT, tg, store: fakeStore({ fail: true }) });
   assert.equal(res.statusCode, 200);
   assert.equal(tg.calls.at(-1).text, 'Не удалось сохранить черновик, попробуйте ещё раз');
+});
+
+test('a video is split into frames and speech, and a late frame becomes the photo', async () => {
+  const tg = fakeTelegram();
+  const store = fakeStore();
+  const extracted = [];
+  const frames = ['f1', 'f2', 'f3', 'f4', 'f5'].map((s) => Buffer.from(s));
+  const video = async () => ({ frames, transcript: 'жарим лук' });
+  const extract = async (input) => { extracted.push(input); return DRAFT; };
+  await call({ body: update({ video: { file_id: 'vid', file_size: 5_000_000 }, caption: 'Суп' }), extract, video, tg, store });
+  assert.equal(tg.calls[0].text, 'Смотрю видео, это займёт до минуты…');
+  assert.equal(tg.calls[1].fileId, 'vid');
+  assert.equal(extracted[0].images.length, 5);
+  assert.equal(extracted[0].text, 'Caption: Суп\n\nSpeech transcript: жарим лук');
+  assert.deepEqual(store.calls.map((c) => c.method), ['savePhoto', 'saveDraft']);
+  assert.match(tg.calls.at(-1).text, /Блины/);
+});
+
+test('a video over 20 MB is refused before downloading', async () => {
+  const tg = fakeTelegram();
+  await call({ body: update({ video: { file_id: 'vid', file_size: 30_000_000 } }), video: async () => assert.fail(), tg });
+  assert.deepEqual(tg.calls.map((c) => c.method), ['sendMessage']);
+  assert.match(tg.calls[0].text, /больше 20 МБ/);
 });

@@ -66,3 +66,12 @@ test('extractDraft: pasted text goes straight to Haiku without fetching a page',
   assert.equal(fetchImpl.calls[0].body.model, 'claude-haiku-5-5');
   assert.match(fetchImpl.calls[0].body.messages[0].content[0].text, /flour, milk/);
 });
+
+test('video frames go to the image model with the caption and speech text', () => {
+  const { pickModel, buildContent } = require('../lib/extract');
+  const input = { images: [{ base64: 'AAAA', mediaType: 'image/jpeg' }, { base64: 'BBBB', mediaType: 'image/jpeg' }], text: 'Speech transcript: жарим' };
+  assert.equal(pickModel(input), 'claude-haiku-5-5');
+  const content = buildContent(input);
+  assert.deepEqual(content.map((c) => c.type), ['image', 'image', 'text']);
+  assert.match(content[2].text, /Speech transcript: жарим/);
+});

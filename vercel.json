@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/webhook.js": {
+      "includeFiles": "node_modules/ffmpeg-static/ffmpeg",
+      "memory": 2048
+    }
+  }
+}

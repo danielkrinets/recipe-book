@@ -3,6 +3,8 @@ const { extractDraft } = require('../lib/extract');
 const telegram = require('../lib/telegram');
 const store = require('../lib/store');
 const { validUrl } = require('../lib/url');
+const { readVideo } = require('../lib/video');
+const { waitUntil } = require('@vercel/functions');
 
 const GREETINGS = {
   ru: 'Привет! Пришлите ссылку на рецепт, текст рецепта или фото. Я подготовлю черновик, а сохранить его решите вы.',
@@ -15,10 +17,19 @@ const STORE_FAILED = 'Не удалось сохранить черновик, �
 const MAX_TEXT = 8000;
 // base64 adds a third to the size and the API caps images at 5 MB
 const MAX_PHOTO_BYTES = 3.5 * 1024 * 1024;
+const VIDEO_TOO_LARGE = 'Видео больше 20 МБ, бот такое скачать не может. Пришлите видео покороче.';
+// Telegram lets bots download files up to 20 MB
+const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
 const MEDIA_TYPES = { '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif' };
 
 function mediaTypeOf(filePath) {
   return MEDIA_TYPES[filePath.slice(filePath.lastIndexOf('.')).toLowerCase()] || 'image/jpeg';
+}
+
+function videoOf(message) {
+  const doc = message.document;
+  return message.video || message.video_note || message.animation
+    || (doc && /^video\//.test(doc.mime_type || '') ? doc : null);
 }
 
 function sameSecret(header, secret) {
@@ -42,8 +53,22 @@ function formatDraft(draft) {
 }
 
 // Returns the extracted draft and, for a photo, the bytes to keep as the recipe photo
-async function makeDraft(message, { extract, tg, token }) {
+async function makeDraft(message, { extract, video: readFrames, tg, token }) {
   const text = (message.text || '').trim();
+  const video = videoOf(message);
+  if (video) {
+    const file = await tg.getFile(token, video.file_id);
+    const { frames, transcript } = await readFrames(await tg.downloadFile(token, file.file_path));
+    if (!frames.length) throw new Error('no frames');
+    const caption = (message.caption || '').trim();
+    const draft = await extract({
+      images: frames.map((f) => ({ base64: f.toString('base64'), mediaType: 'image/jpeg' })),
+      text: [caption && `Caption: ${caption}`, transcript && `Speech transcript: ${transcript}`]
+        .filter(Boolean).join('\n\n') || 'The video has no caption and no speech.',
+    });
+    // shortcut: a frame near the end usually shows the finished dish; let the user pick one if it is often wrong
+    return { draft, photo: { bytes: frames[Math.floor(frames.length * 0.8)], mediaType: 'image/jpeg' } };
+  }
   if (message.photo) {
     const photo = [...message.photo].reverse().find((p) => (p.file_size || 0) <= MAX_PHOTO_BYTES);
     if (!photo) throw new Error('photo too large');
@@ -71,9 +96,11 @@ async function handleMessage(message, deps) {
     const lang = ((message.from && message.from.language_code) || '').slice(0, 2);
     return say(GREETINGS[lang] || GREETINGS.en);
   }
-  if (!message.photo && !text) return;
+  const video = videoOf(message);
+  if (!message.photo && !video && !text) return;
+  if (video && (video.file_size || 0) > MAX_VIDEO_BYTES) return say(VIDEO_TOO_LARGE);
 
-  await say('Читаю рецепт…');
+  await say(video ? 'Смотрю видео, это займёт до минуты…' : 'Читаю рецепт…');
   let made;
   try {
     made = await makeDraft(message, deps);
@@ -102,11 +129,14 @@ async function handleCallback(query, deps) {
   return tg.answerCallbackQuery(token, query.id, saved ? 'Сохранено' : 'Не найдено или уже сохранено');
 }
 
-// Telegram retries any update that does not get 200, so every path ends with 200
+// Telegram retries any update that does not get 200, so every path ends with 200.
+// Work runs after the reply (defer), so a slow video never makes Telegram resend the update.
 function createHandler({
   extract = (input) => extractDraft(input, process.env.ANTHROPIC_API_KEY),
+  video = (bytes) => readVideo(bytes, process.env.GROQ_API_KEY),
   tg = telegram,
   store: storage = store,
+  defer = waitUntil,
 } = {}) {
   return async (req, res) => {
     if (req.method !== 'POST') return res.status(405).json({ error: 'method not allowed' });
@@ -115,13 +145,12 @@ function createHandler({
     }
 
     const body = req.body || {};
-    const deps = { extract, tg, store: storage, token: process.env.TELEGRAM_BOT_TOKEN };
-    try {
+    const deps = { extract, video, tg, store: storage, token: process.env.TELEGRAM_BOT_TOKEN };
+    const work = (async () => {
       if (body.callback_query) await handleCallback(body.callback_query, deps);
       else if (body.message && body.message.chat) await handleMessage(body.message, deps);
-    } catch (err) {
-      console.error('webhook failed', err.message);
-    }
+    })().catch((err) => console.error('webhook failed', err.message));
+    defer(work);
     return res.status(200).json({ ok: true });
   };
 }
