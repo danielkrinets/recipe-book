@@ -1,0 +1,12 @@
+{
+  "name": "recipe-book-tma",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/check.test.js tests/initdata.test.js tests/extract.test.js tests/recipe-api.test.js tests/webhook.test.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "@vercel/blob": "^2.8.2"
+  }
+}
