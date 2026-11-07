@@ -29,7 +29,7 @@ function load(storage = {}) {
     console
   };
   // Expose internals: top-level const/let are not visible from outside the script
-  const exposed = 'globalThis.__app = { parseRecipe, parseCategory, missingSeeds, loadRecipes, SEED, CATEGORIES, PALETTE, CATS_KEY, KEY, OFFERED_KEY };';
+  const exposed = 'globalThis.__app = { parseRecipe, parseCategory, missingSeeds, newFromServer, loadRecipes, SEED, CATEGORIES, PALETTE, CATS_KEY, KEY, OFFERED_KEY };';
   vm.createContext(sandbox);
   vm.runInContext(script + '\n' + exposed, sandbox);
   return { app: sandbox.__app, store };
@@ -156,4 +156,16 @@ test('SEED recipes are valid: unique titles, known categories, ingredients and s
     assert.ok(s.steps.length > 0, `no steps in ${s.title}`);
     assert.ok(s.baseServings >= 1, `bad servings in ${s.title}`);
   }
+});
+
+test('newFromServer: bot recipes are imported once and keep their photo', () => {
+  const { app } = load();
+  const server = [{ id: 'a', title: 'Суп', ingredients: ['вода 1 л'], steps: ['варить'], photo: 'https://blob.test/p.jpg' }];
+  const first = plain(app.newFromServer(server, []));
+  assert.equal(first.add.length, 1);
+  assert.deepEqual(first.add[0].ingredients, [{ name: 'вода 1 л', amount: '', unit: '' }]);
+  assert.equal(first.add[0].category, 'Из бота');
+  assert.equal(first.add[0].photo, 'https://blob.test/p.jpg');
+  assert.deepEqual(first.imported, ['a']);
+  assert.equal(app.newFromServer(server, ['a']).add.length, 0);
 });

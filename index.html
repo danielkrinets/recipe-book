@@ -352,6 +352,9 @@
   const OFFERED_KEY = 'recipe-book-offered-v1';
   const MAX_PHOTO = 640; // px on the longest side; keeps localStorage usage small
   const BOT_USERNAME = 'recipe4katyabot'; // username бота без @; пока пусто, кнопка не показывается
+  const API = 'https://recipe-book-tma.vercel.app';
+  const IMPORTED_KEY = 'recipe-book-imported-v1';
+  const BOT_CAT = { name: 'Из бота', icon: '🤖' };
 
   const CATEGORIES = [
     { name: 'Выпечка', icon: '🥐', color: '#F6E3C6' },
@@ -615,6 +618,43 @@
     if (add.length) writeJSON(KEY, next);
     writeJSON(OFFERED_KEY, offered);
     return next;
+  }
+
+  // Bot recipes are imported once, like seeds: a recipe deleted in the app stays deleted
+  function newFromServer(server, imported) {
+    const add = server
+      .filter(s => !imported.includes(s.id))
+      .map(s => ({
+        id: s.id,
+        title: s.title,
+        photo: s.photo || '',
+        category: BOT_CAT.name,
+        time: 0,
+        baseServings: 4,
+        ingredients: (s.ingredients || []).map(name => ({ name, amount: '', unit: '' })),
+        steps: s.steps || []
+      }));
+    return { add, imported: server.map(s => s.id) };
+  }
+
+  function syncFromServer() {
+    if (!tg || !tg.initData) return;
+    fetch(`${API}/api/recipes`, { headers: { 'x-telegram-init-data': tg.initData } })
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(res.status))))
+      .then(({ recipes: server }) => {
+        const { add, imported } = newFromServer(server, readJSON(IMPORTED_KEY, []));
+        if (add.length && !customCats.some(c => c.name === BOT_CAT.name)) {
+          customCats = [...customCats, { ...BOT_CAT, color: PALETTE[customCats.length % PALETTE.length] }];
+          writeJSON(CATS_KEY, customCats);
+        }
+        if (add.length) {
+          recipes = [...add, ...recipes];
+          if (!writeJSON(KEY, recipes)) return;
+        }
+        writeJSON(IMPORTED_KEY, imported);
+        if (add.length) render();
+      })
+      .catch(err => console.error('sync failed', err.message));
   }
 
   function allCategories() {
@@ -1201,6 +1241,7 @@
   customCats = readJSON(CATS_KEY, []);
   done = readJSON(DONE_KEY, {});
   render();
+  syncFromServer();
 </script>
 </body>
 </html>
