@@ -250,7 +250,9 @@
 
   .form label { display: grid; gap: 6px; font-size: 16px; font-weight: 600; }
 
-  .form input, .form select, .form textarea {
+  .translate { display: grid; gap: 10px; margin: 0 0 20px; }
+
+  .form input, .form select, .form textarea, .translate input {
     width: 100%;
     padding: 12px 14px;
     border: 1px solid var(--line);
@@ -355,6 +357,12 @@
   const API = 'https://recipe-book-tma.vercel.app';
   const IMPORTED_KEY = 'recipe-book-imported-v1';
   const BOT_CAT = { name: 'Из бота', icon: '🤖' };
+  const LANG_KEY = 'recipe-book-lang-v1';
+  // Suggestions only: any language name typed in the field is sent to Claude
+  const LANGS = ['English', 'Русский', 'עברית', 'العربية', 'Українська', 'Español', 'Français', 'Deutsch', 'Italiano',
+    'Português', 'Polski', 'Türkçe', 'Ελληνικά', 'Nederlands', 'Svenska', 'Čeština', 'Română', 'Magyar', 'Български',
+    'Српски', 'ქართული', 'Հայերեն', 'Қазақша', 'Oʻzbekcha', 'فارسی', 'हिन्दी', '中文', '日本語', '한국어', 'Tiếng Việt',
+    'ไทย', 'Bahasa Indonesia'];
 
   const CATEGORIES = [
     { name: 'Выпечка', icon: '🥐', color: '#F6E3C6' },
@@ -557,6 +565,9 @@
   ];
 
   const state = {
+    translation: null, // { id, lang, recipe } for the recipe on screen; kept in memory only
+    translating: false,
+    translateError: '',
     view: 'home',
     history: [],
     category: '',
@@ -882,11 +893,24 @@
     const factor = state.servings / r.baseServings;
     const doneList = done[r.id] || [];
     const cat = catOf(r.category);
+    const tr = state.translation && state.translation.id === r.id ? state.translation : null;
+    const shown = tr ? { ...r, ...tr.recipe } : r;
+    const translateBox = tr
+      ? `<p class="sub">🌐 Перевод: ${esc(tr.lang)}</p>
+         <button class="btn btn-ghost" data-action="show-original">Показать оригинал</button>`
+      : `<input id="t-lang" list="t-langs" value="${esc(readJSON(LANG_KEY, 'English'))}" placeholder="Язык, например English" aria-label="Язык перевода">
+         <datalist id="t-langs">${LANGS.map(l => `<option value="${esc(l)}">`).join('')}</datalist>
+         <button class="btn btn-soft" data-action="translate"${state.translating ? ' disabled' : ''}>${state.translating ? 'Перевожу…' : '🌐 Перевести'}</button>`;
     return `
-      ${r.photo ? `<img class="recipe-photo" src="${esc(r.photo)}" alt="${esc(r.title)}">` : ''}
+      ${r.photo ? `<img class="recipe-photo" src="${esc(r.photo)}" alt="${esc(shown.title)}">` : ''}
       <span class="tag" style="background:${cat.color}">${cat.icon} ${esc(r.category)}</span>
-      <h1 class="recipe-title">${esc(r.title)}</h1>
+      <h1 class="recipe-title" dir="auto">${esc(shown.title)}</h1>
       <p class="meta">⏱ ${esc(fmtTime(r.time))}</p>
+
+      <div class="translate">
+        ${translateBox}
+        ${state.translateError ? `<p class="error">${esc(state.translateError)}</p>` : ''}
+      </div>
 
       <section class="card">
         <h2>Ингредиенты</h2>
@@ -896,9 +920,9 @@
           <button class="btn btn-soft btn-round" data-action="serv-inc" aria-label="Больше порций">+</button>
         </div>
         <ul class="ingr">
-          ${r.ingredients.map(i => `
+          ${shown.ingredients.map(i => `
             <li>
-              <span>${esc(i.name)}</span>
+              <span dir="auto">${esc(i.name)}</span>
               <b>${esc(scale(i.amount, factor))} ${esc(i.unit)}</b>
             </li>`).join('')}
         </ul>
@@ -907,12 +931,12 @@
       <section>
         <h2>Приготовление</h2>
         <ol class="steps">
-          ${r.steps.map((s, i) => {
+          ${shown.steps.map((s, i) => {
             const isDone = doneList.includes(i);
             return `
             <li class="step${isDone ? ' done' : ''}" data-action="toggle-step" data-index="${i}">
               <span class="check">${isDone ? '✓' : ''}</span>
-              <span>${esc(s)}</span>
+              <span dir="auto">${esc(s)}</span>
             </li>`;
           }).join('')}
         </ol>
@@ -1106,6 +1130,48 @@
         else window.open(url, '_blank');
         break;
       }
+
+      case 'translate': {
+        const r = recipes.find(x => x.id === state.recipeId);
+        const lang = document.getElementById('t-lang').value.trim();
+        if (!r || state.translating) break;
+        if (!lang) {
+          state.translateError = 'Выберите язык.';
+          render();
+          break;
+        }
+        if (!tg || !tg.initData) {
+          state.translateError = 'Перевод работает только внутри Telegram.';
+          render();
+          break;
+        }
+        writeJSON(LANG_KEY, lang);
+        Object.assign(state, { translating: true, translateError: '' });
+        render();
+        const recipe = {
+          title: String(r.title),
+          ingredients: r.ingredients.map(i => ({ name: String(i.name ?? ''), amount: String(i.amount ?? ''), unit: String(i.unit ?? '') })),
+          steps: r.steps.map(String)
+        };
+        fetch(`${API}/api/translate`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-telegram-init-data': tg.initData },
+          body: JSON.stringify({ recipe, lang })
+        })
+          .then(res => (res.ok ? res.json() : Promise.reject(new Error(res.status))))
+          .then(data => { state.translation = { id: r.id, lang, recipe: data.recipe }; })
+          .catch(() => { state.translateError = 'Не удалось перевести. Попробуйте ещё раз.'; })
+          .finally(() => {
+            state.translating = false;
+            render();
+          });
+        break;
+      }
+
+      case 'show-original':
+        state.translation = null;
+        render();
+        break;
 
       case 'toggle-fav': {
         const next = recipes.map(x => (x.id === state.recipeId ? { ...x, favorite: !x.favorite } : x));

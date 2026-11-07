@@ -1,16 +1,11 @@
 const { verifyInitData } = require('../lib/initdata');
 const store = require('../lib/store');
-
-// The Mini App is served from GitHub Pages, so this endpoint is cross-origin
-const ORIGIN = 'https://danielkrinets.github.io';
+const { cors } = require('../lib/cors');
 
 // Returns the recipes the user saved through the bot
 function createHandler({ store: storage = store } = {}) {
   return async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', ORIGIN);
-    res.setHeader('Access-Control-Allow-Headers', 'x-telegram-init-data');
-    res.setHeader('Vary', 'Origin');
-    if (req.method === 'OPTIONS') return res.status(204).end();
+    if (cors(req, res)) return;
     if (req.method !== 'GET') return res.status(405).json({ error: 'method not allowed' });
 
     const user = verifyInitData(req.headers['x-telegram-init-data'], process.env.TELEGRAM_BOT_TOKEN);
