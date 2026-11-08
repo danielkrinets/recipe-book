@@ -91,6 +91,7 @@ function formatDraft(draft, t) {
 async function draftFromVideo(bytes, caption, { extract, video: readFrames }) {
   const { frames, transcript } = await readFrames(bytes);
   if (!frames.length) throw new Error('no frames');
+  console.log(`video read: ${bytes.length} bytes, ${frames.length} frames, transcript ${transcript.length} chars, caption ${caption.length} chars`);
   const draft = await extract({
     images: frames.map((f) => ({ base64: f.toString('base64'), mediaType: 'image/jpeg' })),
     text: [caption && `Caption: ${caption}`, transcript && `Speech transcript: ${transcript}`]
