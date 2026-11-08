@@ -5,6 +5,7 @@ const store = require('../lib/store');
 const { validUrl } = require('../lib/url');
 const { readVideo } = require('../lib/video');
 const { isVideoLink, downloadVideo } = require('../lib/download');
+const { youtubeId, youtubeInfo } = require('../lib/youtube');
 const { waitUntil } = require('@vercel/functions');
 
 // Bot replies in the user's Telegram language; unknown languages get English
@@ -99,9 +100,18 @@ async function draftFromVideo(bytes, caption, { extract, video: readFrames }) {
   return { draft, photo: { bytes: frames[Math.floor(frames.length * 0.8)], mediaType: 'image/jpeg' } };
 }
 
+// Title and description stand in for the video; the thumbnail helps the model and becomes the photo
+async function draftFromYoutube({ title, description, thumbnail }, extract) {
+  const text = `Video title: ${title}\n\nVideo description: ${description || '(none)'}`;
+  const draft = thumbnail
+    ? await extract({ images: [{ base64: thumbnail.toString('base64'), mediaType: 'image/jpeg' }], text })
+    : await extract({ text });
+  return { draft, photo: thumbnail ? { bytes: thumbnail, mediaType: 'image/jpeg' } : null };
+}
+
 // Returns the extracted draft and, for a photo or video, the bytes to keep as the recipe photo
 async function makeDraft(message, deps) {
-  const { extract, download, tg, token } = deps;
+  const { extract, download, youtube, tg, token } = deps;
   const text = (message.text || '').trim();
   const video = videoOf(message);
   if (video) {
@@ -127,6 +137,8 @@ async function makeDraft(message, deps) {
         console.error('video link failed, reading the page instead', err.message);
       }
     }
+    const ytId = youtubeId(text);
+    if (ytId) return draftFromYoutube(await youtube(ytId), extract);
     return { draft: await extract({ url: text }), photo: null };
   }
   if (text.length > MAX_TEXT) throw new Error('text too long');
@@ -181,6 +193,7 @@ function createHandler({
   extract = (input) => extractDraft(input, process.env.ANTHROPIC_API_KEY),
   video = (bytes) => readVideo(bytes, process.env.GROQ_API_KEY),
   download = downloadVideo,
+  youtube = youtubeInfo,
   tg = telegram,
   store: storage = store,
   defer = waitUntil,
@@ -192,7 +205,7 @@ function createHandler({
     }
 
     const body = req.body || {};
-    const deps = { extract, video, download, tg, store: storage, token: process.env.TELEGRAM_BOT_TOKEN };
+    const deps = { extract, video, download, youtube, tg, store: storage, token: process.env.TELEGRAM_BOT_TOKEN };
     const work = (async () => {
       if (body.callback_query) await handleCallback(body.callback_query, deps);
       else if (body.message && body.message.chat) await handleMessage(body.message, deps);

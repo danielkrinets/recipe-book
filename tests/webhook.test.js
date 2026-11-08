@@ -52,7 +52,7 @@ function fakeStore({ saved = true, fail = false } = {}) {
 }
 
 // Minimal stand-in for Vercel's req/res
-async function call({ method = 'POST', secret = SECRET, body = {}, extract, video, download, tg, store = fakeStore() }) {
+async function call({ method = 'POST', secret = SECRET, body = {}, extract, video, download, youtube, tg, store = fakeStore() }) {
   const res = {
     statusCode: 200,
     body: null,
@@ -61,7 +61,7 @@ async function call({ method = 'POST', secret = SECRET, body = {}, extract, vide
   };
   const headers = secret === null ? {} : { 'x-telegram-bot-api-secret-token': secret };
   const deferred = [];
-  await createHandler({ extract, video, download, tg, store, defer: (p) => deferred.push(p) })({ method, headers, body }, res);
+  await createHandler({ extract, video, download, youtube, tg, store, defer: (p) => deferred.push(p) })({ method, headers, body }, res);
   await Promise.all(deferred);
   return res;
 }
@@ -234,8 +234,8 @@ test('when a video link cannot be downloaded, the page text is used instead', as
   const extracted = [];
   const download = async () => { throw new Error('login required'); };
   const extract = async (input) => { extracted.push(input); return DRAFT; };
-  await call({ body: update({ text: 'https://youtu.be/xyz' }), extract, download, tg });
-  assert.deepEqual(extracted, [{ url: 'https://youtu.be/xyz' }]);
+  await call({ body: update({ text: 'https://www.tiktok.com/@a/video/1' }), extract, download, tg });
+  assert.deepEqual(extracted, [{ url: 'https://www.tiktok.com/@a/video/1' }]);
   assert.match(tg.calls.at(-1).text, /Блины/);
 });
 
@@ -250,4 +250,20 @@ test('the bot speaks the user\'s Telegram language and falls back to English', a
   assert.equal(he.at(-1).replyMarkup.inline_keyboard[0][0].text, 'שמירה');
   assert.match(he.at(-1).text, /מצרכים:/);
   assert.equal((await say('ja'))[0].text, 'Reading the recipe…');
+});
+
+test('a YouTube link that cannot be downloaded uses the title, description and thumbnail', async () => {
+  const tg = fakeTelegram();
+  const store = fakeStore();
+  const extracted = [];
+  const asked = [];
+  const download = async () => { throw new Error('Sign in to confirm you are not a bot'); };
+  const youtube = async (id) => { asked.push(id); return { title: 'Пицца', description: 'мука 300 г', thumbnail: Buffer.from('jpg') }; };
+  const extract = async (input) => { extracted.push(input); return DRAFT; };
+  await call({ body: update({ text: 'https://youtube.com/shorts/abcdefghijk?si=x' }), extract, download, youtube, tg, store });
+  assert.deepEqual(asked, ['abcdefghijk']);
+  assert.equal(extracted[0].text, 'Video title: Пицца\n\nVideo description: мука 300 г');
+  assert.equal(extracted[0].images.length, 1);
+  assert.equal(store.calls[0].method, 'savePhoto');
+  assert.match(tg.calls.at(-1).text, /Блины/);
 });
