@@ -103,6 +103,7 @@ async function draftFromVideo(bytes, caption, { extract, video: readFrames }) {
 
 // Title and description stand in for the video; the thumbnail helps the model and becomes the photo
 async function draftFromYoutube({ title, description, thumbnail }, extract) {
+  console.log(`youtube info: title "${title}", description ${description.length} chars: ${description.slice(0, 150).replace(/\n/g, ' ')}`);
   const text = `Video title: ${title}\n\nVideo description: ${description || '(none)'}`;
   const draft = thumbnail
     ? await extract({ images: [{ base64: thumbnail.toString('base64'), mediaType: 'image/jpeg' }], text })
