@@ -72,7 +72,7 @@ const update = (message) => ({
 });
 const callback = (data) => ({
   update_id: 3,
-  callback_query: { id: 'cb1', from: { id: 42 }, data },
+  callback_query: { id: 'cb1', from: { id: 42, language_code: 'ru' }, data },
 });
 
 test('rejects non-POST', async () => {
@@ -237,4 +237,17 @@ test('when a video link cannot be downloaded, the page text is used instead', as
   await call({ body: update({ text: 'https://youtu.be/xyz' }), extract, download, tg });
   assert.deepEqual(extracted, [{ url: 'https://youtu.be/xyz' }]);
   assert.match(tg.calls.at(-1).text, /Блины/);
+});
+
+test('the bot speaks the user\'s Telegram language and falls back to English', async () => {
+  const say = async (language_code) => {
+    const tg = fakeTelegram();
+    await call({ body: { update_id: 1, message: { chat: { id: 7 }, from: { id: 42, language_code }, text: 'Блины' } }, extract: async () => DRAFT, tg, store: fakeStore() });
+    return tg.calls;
+  };
+  const he = await say('he');
+  assert.equal(he[0].text, 'קורא את המתכון…');
+  assert.equal(he.at(-1).replyMarkup.inline_keyboard[0][0].text, 'שמירה');
+  assert.match(he.at(-1).text, /מצרכים:/);
+  assert.equal((await say('ja'))[0].text, 'Reading the recipe…');
 });

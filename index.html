@@ -251,6 +251,9 @@
   .form label { display: grid; gap: 6px; font-size: 16px; font-weight: 600; }
 
   .translate { display: grid; gap: 10px; margin: 0 0 20px; }
+  .ui-langs { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+  .ui-lang { border: 1px solid var(--line); background: transparent; color: inherit; border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 14px; cursor: pointer; }
+  .ui-lang.on { background: var(--green-dark); border-color: var(--green-dark); color: #fff; }
 
   .form input, .form select, .form textarea, .translate input {
     width: 100%;
@@ -615,6 +618,127 @@
     }
   }
 
+
+  const UI_LANG_KEY = 'recipe-book-ui-lang-v1';
+  // Interface texts; recipe content itself is translated on demand through Claude
+  const I18N = {
+    ru: {
+      langName: 'Русский', appTitle: 'Книга рецептов', appSub: 'Любимые рецепты в одном месте',
+      search: 'Поиск по названию или ингредиенту', nothing: 'Ничего не нашлось. Попробуйте другое слово.',
+      botHintTitle: 'Добавить рецепт из Telegram.',
+      botHint: 'Отправьте боту ссылку на рецепт, скриншот, фото или видео, или напишите рецепт текстом. Бот пришлёт черновик, и вы подтвердите его перед сохранением.',
+      openBot: 'Открыть чат с ботом', favs: '★ Избранное', count: n => `Рецептов: ${n}`, recShort: n => `${n} рец.`,
+      favsEmpty: 'Отметьте рецепт звёздочкой, и он появится здесь.', addRecipe: '+ Добавить новый рецепт',
+      newCat: '+ Новая категория', catEmpty: 'В этой категории пока нет рецептов.', emoji: 'Эмодзи',
+      newCatTitle: 'Новая категория', name: 'Название', catNamePh: 'Например, Закуски', createCat: 'Создать категорию',
+      cancel: 'Отмена', translated: lang => `🌐 Перевод: ${lang}`, showOriginal: 'Показать оригинал',
+      langPh: 'Язык, например English', langAria: 'Язык перевода', translating: 'Перевожу…', translate: '🌐 Перевести',
+      ingredients: 'Ингредиенты', servLess: 'Меньше порций', servMore: 'Больше порций', cooking: 'Приготовление',
+      resetDone: 'Сбросить отметки', inFav: '★ В избранном', toFav: '☆ В избранное', edit: 'Редактировать',
+      confirmDelete: 'Точно удалить?', deleteRecipe: 'Удалить рецепт', product: 'Продукт', amountPh: 'Кол-во',
+      unitPh: 'Ед.', ingName: 'Название ингредиента', amount: 'Количество', unit: 'Единица измерения',
+      removeRow: 'Удалить строку', editing: 'Редактирование', newRecipe: 'Новый рецепт', recipeNamePh: 'Например, Блины',
+      photo: 'Фото', photoAlt: 'Фото рецепта', noPhoto: 'Фото пока не добавлено', replacePhoto: 'Заменить фото',
+      addPhoto: 'Добавить фото', removePhoto: 'Убрать фото', category: 'Категория', timeMin: 'Время, мин',
+      servingsLabel: 'Порций', addIngredient: '+ Добавить ингредиент', stepsPh: 'Каждый шаг — с новой строки',
+      save: 'Сохранить', back: '← Назад', noTime: 'время не указано', h: 'ч', min: 'мин',
+      portions: n => {
+        const m10 = n % 10, m100 = n % 100;
+        if (m10 === 1 && m100 !== 11) return 'порция';
+        if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'порции';
+        return 'порций';
+      },
+      errTitle: 'Введите название рецепта.', errTitleLong: 'Название не длиннее 80 символов.', errCat: 'Выберите категорию.',
+      errTime: 'Время укажите целым числом минут.', errServ: 'Порций должно быть не меньше одной.',
+      errIngr: 'Добавьте хотя бы один ингредиент.', errSteps: 'Опишите приготовление.',
+      errCatName: 'Введите название категории.', errCatLong: 'Название категории не длиннее 30 символов.',
+      errCatExists: 'Такая категория уже есть.', errEmoji: 'Выберите эмодзи.',
+      errStorage: 'Не удалось сохранить: не хватает места в хранилище. Уберите фото у других рецептов.',
+      errCatStorage: 'Не удалось сохранить категорию: не хватает места в хранилище.',
+      errLang: 'Выберите язык.', errOnlyTg: 'Перевод работает только внутри Telegram.',
+      errTranslate: 'Не удалось перевести. Попробуйте ещё раз.', errPhotoFile: 'Не удалось открыть фото. Выберите другой файл.',
+      cats: { 'Выпечка': 'Выпечка', 'Супы': 'Супы', 'Горячее': 'Горячее', 'Салаты': 'Салаты', 'Десерты': 'Десерты', 'Из бота': 'Из бота' }
+    },
+    en: {
+      langName: 'English', appTitle: 'Recipe Book', appSub: 'Favorite recipes in one place',
+      search: 'Search by name or ingredient', nothing: 'Nothing found. Try another word.',
+      botHintTitle: 'Add a recipe from Telegram.',
+      botHint: 'Send the bot a recipe link, a screenshot, a photo or a video, or type the recipe. The bot sends a draft, and you confirm it before saving.',
+      openBot: 'Open chat with the bot', favs: '★ Favorites', count: n => `Recipes: ${n}`, recShort: n => (n === 1 ? '1 recipe' : `${n} recipes`),
+      favsEmpty: 'Star a recipe and it will show up here.', addRecipe: '+ Add a new recipe',
+      newCat: '+ New category', catEmpty: 'No recipes in this category yet.', emoji: 'Emoji',
+      newCatTitle: 'New category', name: 'Name', catNamePh: 'For example, Snacks', createCat: 'Create category',
+      cancel: 'Cancel', translated: lang => `🌐 Translation: ${lang}`, showOriginal: 'Show original',
+      langPh: 'Language, for example Hebrew', langAria: 'Translation language', translating: 'Translating…', translate: '🌐 Translate',
+      ingredients: 'Ingredients', servLess: 'Fewer servings', servMore: 'More servings', cooking: 'Directions',
+      resetDone: 'Clear checkmarks', inFav: '★ In favorites', toFav: '☆ Add to favorites', edit: 'Edit',
+      confirmDelete: 'Delete for sure?', deleteRecipe: 'Delete recipe', product: 'Item', amountPh: 'Qty',
+      unitPh: 'Unit', ingName: 'Ingredient name', amount: 'Amount', unit: 'Unit',
+      removeRow: 'Remove row', editing: 'Editing', newRecipe: 'New recipe', recipeNamePh: 'For example, Pancakes',
+      photo: 'Photo', photoAlt: 'Recipe photo', noPhoto: 'No photo yet', replacePhoto: 'Replace photo',
+      addPhoto: 'Add photo', removePhoto: 'Remove photo', category: 'Category', timeMin: 'Time, min',
+      servingsLabel: 'Servings', addIngredient: '+ Add ingredient', stepsPh: 'One step per line',
+      save: 'Save', back: '← Back', noTime: 'no time given', h: 'h', min: 'min',
+      portions: n => (n === 1 ? 'serving' : 'servings'),
+      errTitle: 'Enter a recipe name.', errTitleLong: 'The name must be 80 characters or less.', errCat: 'Choose a category.',
+      errTime: 'Enter the time as whole minutes.', errServ: 'There must be at least one serving.',
+      errIngr: 'Add at least one ingredient.', errSteps: 'Describe the directions.',
+      errCatName: 'Enter a category name.', errCatLong: 'The category name must be 30 characters or less.',
+      errCatExists: 'This category already exists.', errEmoji: 'Choose an emoji.',
+      errStorage: 'Could not save: storage is full. Remove photos from other recipes.',
+      errCatStorage: 'Could not save the category: storage is full.',
+      errLang: 'Choose a language.', errOnlyTg: 'Translation works only inside Telegram.',
+      errTranslate: 'Could not translate. Please try again.', errPhotoFile: 'Could not open the photo. Choose another file.',
+      cats: { 'Выпечка': 'Baking', 'Супы': 'Soups', 'Горячее': 'Main dishes', 'Салаты': 'Salads', 'Десерты': 'Desserts', 'Из бота': 'From the bot' }
+    },
+    he: {
+      langName: 'עברית', appTitle: 'ספר מתכונים', appSub: 'המתכונים האהובים במקום אחד',
+      search: 'חיפוש לפי שם או מצרך', nothing: 'לא נמצא דבר. נסו מילה אחרת.',
+      botHintTitle: 'הוספת מתכון מטלגרם.',
+      botHint: 'שלחו לבוט קישור למתכון, צילום מסך, תמונה או סרטון, או כתבו את המתכון. הבוט ישלח טיוטה, ואתם תאשרו אותה לפני השמירה.',
+      openBot: 'פתיחת צ׳אט עם הבוט', favs: '★ מועדפים', count: n => `מתכונים: ${n}`, recShort: n => (n === 1 ? 'מתכון אחד' : `${n} מתכונים`),
+      favsEmpty: 'סמנו מתכון בכוכב והוא יופיע כאן.', addRecipe: '+ הוספת מתכון חדש',
+      newCat: '+ קטגוריה חדשה', catEmpty: 'אין עדיין מתכונים בקטגוריה הזו.', emoji: 'אימוג׳י',
+      newCatTitle: 'קטגוריה חדשה', name: 'שם', catNamePh: 'לדוגמה, מתאבנים', createCat: 'יצירת קטגוריה',
+      cancel: 'ביטול', translated: lang => `🌐 תרגום: ${lang}`, showOriginal: 'הצגת המקור',
+      langPh: 'שפה, לדוגמה English', langAria: 'שפת התרגום', translating: 'מתרגם…', translate: '🌐 תרגום',
+      ingredients: 'מצרכים', servLess: 'פחות מנות', servMore: 'יותר מנות', cooking: 'אופן ההכנה',
+      resetDone: 'ניקוי הסימונים', inFav: '★ במועדפים', toFav: '☆ הוספה למועדפים', edit: 'עריכה',
+      confirmDelete: 'בטוח למחוק?', deleteRecipe: 'מחיקת המתכון', product: 'מצרך', amountPh: 'כמות',
+      unitPh: 'יחידה', ingName: 'שם המצרך', amount: 'כמות', unit: 'יחידת מידה',
+      removeRow: 'מחיקת השורה', editing: 'עריכה', newRecipe: 'מתכון חדש', recipeNamePh: 'לדוגמה, פנקייק',
+      photo: 'תמונה', photoAlt: 'תמונת המתכון', noPhoto: 'עדיין אין תמונה', replacePhoto: 'החלפת תמונה',
+      addPhoto: 'הוספת תמונה', removePhoto: 'הסרת התמונה', category: 'קטגוריה', timeMin: 'זמן, דקות',
+      servingsLabel: 'מנות', addIngredient: '+ הוספת מצרך', stepsPh: 'כל שלב בשורה חדשה',
+      save: 'שמירה', back: '→ חזרה', noTime: 'לא צוין זמן', h: 'ש׳', min: 'דק׳',
+      portions: n => (n === 1 ? 'מנה' : 'מנות'),
+      errTitle: 'הזינו שם למתכון.', errTitleLong: 'השם יכול להכיל עד 80 תווים.', errCat: 'בחרו קטגוריה.',
+      errTime: 'הזינו את הזמן בדקות שלמות.', errServ: 'צריכה להיות לפחות מנה אחת.',
+      errIngr: 'הוסיפו לפחות מצרך אחד.', errSteps: 'תארו את אופן ההכנה.',
+      errCatName: 'הזינו שם לקטגוריה.', errCatLong: 'שם הקטגוריה יכול להכיל עד 30 תווים.',
+      errCatExists: 'הקטגוריה הזו כבר קיימת.', errEmoji: 'בחרו אימוג׳י.',
+      errStorage: 'השמירה נכשלה: האחסון מלא. הסירו תמונות ממתכונים אחרים.',
+      errCatStorage: 'שמירת הקטגוריה נכשלה: האחסון מלא.',
+      errLang: 'בחרו שפה.', errOnlyTg: 'התרגום עובד רק בתוך טלגרם.',
+      errTranslate: 'התרגום נכשל. נסו שוב.', errPhotoFile: 'לא ניתן לפתוח את התמונה. בחרו קובץ אחר.',
+      cats: { 'Выпечка': 'מאפים', 'Супы': 'מרקים', 'Горячее': 'מנות עיקריות', 'Салаты': 'סלטים', 'Десерты': 'קינוחים', 'Из бота': 'מהבוט' }
+    }
+  };
+
+  // Saved choice first, then the Telegram language; unknown languages get English, no hint at all keeps Russian
+  function pickUiLang(saved, tgCode) {
+    const code = saved || String(tgCode || '').slice(0, 2);
+    return I18N[code] ? code : (code ? 'en' : 'ru');
+  }
+  let uiLang = pickUiLang(readJSON(UI_LANG_KEY, ''), tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code);
+  const t = key => I18N[uiLang][key];
+  // Category names stay Russian as storage keys; only built-in ones get a translated label
+  const catLabel = name => t('cats')[name] || name;
+  function applyDir() {
+    document.documentElement.lang = uiLang;
+    document.documentElement.dir = uiLang === 'he' ? 'rtl' : 'ltr';
+  }
+
   // Seed recipes are offered once: new ones reach existing users, deleted ones stay deleted
   function missingSeeds(list, offered) {
     const add = SEED.filter(s => !offered.includes(s.title) && !list.some(r => r.title === s.title));
@@ -677,18 +801,14 @@
   }
 
   function fmtTime(minutes) {
-    if (!minutes) return 'время не указано';
+    if (!minutes) return t('noTime');
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
-    return [h ? `${h} ч` : '', m ? `${m} мин` : ''].filter(Boolean).join(' ');
+    return [h ? `${h} ${t('h')}` : '', m ? `${m} ${t('min')}` : ''].filter(Boolean).join(' ');
   }
 
   function portions(n) {
-    const m10 = n % 10;
-    const m100 = n % 100;
-    if (m10 === 1 && m100 !== 11) return 'порция';
-    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'порции';
-    return 'порций';
+    return t('portions')(n);
   }
 
   function fmtNum(n) {
@@ -786,7 +906,7 @@
         ${r.photo ? `<img class="ri-photo" src="${esc(r.photo)}" alt="">` : ''}
         <span class="ri-text">
           <span class="ri-title">${esc(r.title)}</span>
-          <span class="ri-meta">${esc(r.category)} · ${esc(fmtTime(r.time))}</span>
+          <span class="ri-meta">${esc(catLabel(r.category))} · ${esc(fmtTime(r.time))}</span>
         </span>
       </button>`;
   }
@@ -801,8 +921,8 @@
       const cards = allCategories().map(c => `
         <button class="cat-card" style="background:${c.color}" data-action="open-cat" data-cat="${esc(c.name)}">
           <span class="cat-icon">${c.icon}</span>
-          <span class="cat-name">${esc(c.name)}</span>
-          <span class="cat-count">${recipes.filter(r => r.category === c.name).length} рец.</span>
+          <span class="cat-name">${esc(catLabel(c.name))}</span>
+          <span class="cat-count">${t('recShort')(recipes.filter(r => r.category === c.name).length)}</span>
         </button>`).join('');
       return `<div class="cat-grid">${cards}</div>`;
     }
@@ -812,38 +932,39 @@
     );
     return found.length
       ? recipeList(found)
-      : '<p class="empty">Ничего не нашлось. Попробуйте другое слово.</p>';
+      : `<p class="empty">${t('nothing')}</p>`;
   }
 
   function renderFavs() {
     const items = recipes.filter(r => r.favorite);
     return `
       <header class="head">
-        <h1>★ Избранное</h1>
-        <p class="sub">Рецептов: ${items.length}</p>
+        <h1>${t('favs')}</h1>
+        <p class="sub">${t('count')(items.length)}</p>
       </header>
-      ${items.length ? recipeList(items) : '<p class="empty">Отметьте рецепт звёздочкой, и он появится здесь.</p>'}`;
+      ${items.length ? recipeList(items) : `<p class="empty">${t('favsEmpty')}</p>`}`;
   }
 
   function renderHome() {
     const favCount = recipes.filter(r => r.favorite).length;
     return `
       <header class="head">
-        <h1>Книга рецептов</h1>
-        <p class="sub">Любимые рецепты в одном месте</p>
+        <h1>${t('appTitle')}</h1>
+        <p class="sub">${t('appSub')}</p>
       </header>
-      <input id="search" class="search" type="search" placeholder="Поиск по названию или ингредиенту"
+      <div class="ui-langs">${Object.keys(I18N).map(code =>
+        `<button class="ui-lang${code === uiLang ? ' on' : ''}" data-action="ui-lang" data-lang="${code}" lang="${code}">${I18N[code].langName}</button>`).join('')}</div>
+      <input id="search" class="search" type="search" placeholder="${t('search')}"
              autocomplete="off" value="${esc(state.query)}">
       <div id="results">${resultsHtml()}</div>
       <div class="bot-hint">
-        <b>Добавить рецепт из Telegram.</b> Отправьте боту ссылку на рецепт, скриншот страницы или фото
-        или напишите рецепт текстом. Бот пришлёт черновик, и вы подтвердите его перед сохранением.
-        ${BOT_USERNAME ? '<button class="btn btn-soft" data-action="open-bot">Открыть чат с ботом</button>' : ''}
+        <b>${t('botHintTitle')}</b> ${t('botHint')}
+        ${BOT_USERNAME ? `<button class="btn btn-soft" data-action="open-bot">${t('openBot')}</button>` : ''}
       </div>
       <div class="actions">
-        ${favCount ?`<button class="btn btn-soft" data-action="open-favs">★ Избранное (${favCount})</button>` : ''}
-        <button class="btn btn-primary" data-action="new">+ Добавить новый рецепт</button>
-        <button class="btn btn-soft" data-action="new-cat">+ Новая категория</button>
+        ${favCount ?`<button class="btn btn-soft" data-action="open-favs">${t('favs')} (${favCount})</button>` : ''}
+        <button class="btn btn-primary" data-action="new">${t('addRecipe')}</button>
+        <button class="btn btn-soft" data-action="new-cat">${t('newCat')}</button>
       </div>`;
   }
 
@@ -852,34 +973,34 @@
     const items = recipes.filter(r => r.category === state.category);
     return `
       <header class="head">
-        <h1>${cat.icon} ${esc(cat.name)}</h1>
-        <p class="sub">Рецептов: ${items.length}</p>
+        <h1>${cat.icon} ${esc(catLabel(cat.name))}</h1>
+        <p class="sub">${t('count')(items.length)}</p>
       </header>
-      ${items.length ? recipeList(items) : '<p class="empty">В этой категории пока нет рецептов.</p>'}
+      ${items.length ? recipeList(items) : `<p class="empty">${t('catEmpty')}</p>`}
       <div class="actions">
-        <button class="btn btn-primary" data-action="new">+ Добавить новый рецепт</button>
+        <button class="btn btn-primary" data-action="new">${t('addRecipe')}</button>
       </div>`;
   }
 
   function renderCatForm() {
     const d = state.catDraft;
     const icons = CAT_ICONS.map(e =>
-      `<button type="button" class="emoji${e === d.icon ? ' on' : ''}" data-action="pick-icon" data-icon="${e}" aria-label="Эмодзи ${e}">${e}</button>`
+      `<button type="button" class="emoji${e === d.icon ? ' on' : ''}" data-action="pick-icon" data-icon="${e}" aria-label="${t('emoji')} ${e}">${e}</button>`
     ).join('');
     return `
       <header class="head">
-        <h1>Новая категория</h1>
+        <h1>${t('newCatTitle')}</h1>
       </header>
       ${state.error ? `<p class="error">${esc(state.error)}</p>` : ''}
       <div class="form">
-        <label>Название
-          <input id="c-name" maxlength="30" placeholder="Например, Закуски" value="${esc(d.name)}">
+        <label>${t('name')}
+          <input id="c-name" maxlength="30" placeholder="${t('catNamePh')}" value="${esc(d.name)}">
         </label>
-        <p class="field-title">Эмодзи</p>
+        <p class="field-title">${t('emoji')}</p>
         <div class="emoji-grid">${icons}</div>
         <div class="actions">
-          <button class="btn btn-primary" data-action="save-cat">Создать категорию</button>
-          <button class="btn btn-ghost" data-action="cancel">Отмена</button>
+          <button class="btn btn-primary" data-action="save-cat">${t('createCat')}</button>
+          <button class="btn btn-ghost" data-action="cancel">${t('cancel')}</button>
         </div>
       </div>`;
   }
@@ -896,14 +1017,14 @@
     const tr = state.translation && state.translation.id === r.id ? state.translation : null;
     const shown = tr ? { ...r, ...tr.recipe } : r;
     const translateBox = tr
-      ? `<p class="sub">🌐 Перевод: ${esc(tr.lang)}</p>
-         <button class="btn btn-ghost" data-action="show-original">Показать оригинал</button>`
-      : `<input id="t-lang" list="t-langs" value="${esc(readJSON(LANG_KEY, 'English'))}" placeholder="Язык, например English" aria-label="Язык перевода">
+      ? `<p class="sub">${esc(t('translated')(tr.lang))}</p>
+         <button class="btn btn-ghost" data-action="show-original">${t('showOriginal')}</button>`
+      : `<input id="t-lang" list="t-langs" value="${esc(readJSON(LANG_KEY, 'English'))}" placeholder="${t('langPh')}" aria-label="${t('langAria')}">
          <datalist id="t-langs">${LANGS.map(l => `<option value="${esc(l)}">`).join('')}</datalist>
-         <button class="btn btn-soft" data-action="translate"${state.translating ? ' disabled' : ''}>${state.translating ? 'Перевожу…' : '🌐 Перевести'}</button>`;
+         <button class="btn btn-soft" data-action="translate"${state.translating ? ' disabled' : ''}>${state.translating ? t('translating') : t('translate')}</button>`;
     return `
       ${r.photo ? `<img class="recipe-photo" src="${esc(r.photo)}" alt="${esc(shown.title)}">` : ''}
-      <span class="tag" style="background:${cat.color}">${cat.icon} ${esc(r.category)}</span>
+      <span class="tag" style="background:${cat.color}">${cat.icon} ${esc(catLabel(r.category))}</span>
       <h1 class="recipe-title" dir="auto">${esc(shown.title)}</h1>
       <p class="meta">⏱ ${esc(fmtTime(r.time))}</p>
 
@@ -913,11 +1034,11 @@
       </div>
 
       <section class="card">
-        <h2>Ингредиенты</h2>
+        <h2>${t('ingredients')}</h2>
         <div class="servings">
-          <button class="btn btn-soft btn-round" data-action="serv-dec" aria-label="Меньше порций">−</button>
+          <button class="btn btn-soft btn-round" data-action="serv-dec" aria-label="${t('servLess')}">−</button>
           <span class="serv-val">${state.servings} ${portions(state.servings)}</span>
-          <button class="btn btn-soft btn-round" data-action="serv-inc" aria-label="Больше порций">+</button>
+          <button class="btn btn-soft btn-round" data-action="serv-inc" aria-label="${t('servMore')}">+</button>
         </div>
         <ul class="ingr">
           ${shown.ingredients.map(i => `
@@ -929,7 +1050,7 @@
       </section>
 
       <section>
-        <h2>Приготовление</h2>
+        <h2>${t('cooking')}</h2>
         <ol class="steps">
           ${shown.steps.map((s, i) => {
             const isDone = doneList.includes(i);
@@ -943,63 +1064,63 @@
       </section>
 
       <div class="actions">
-        ${doneList.length ? '<button class="btn btn-ghost" data-action="reset-done">Сбросить отметки</button>' : ''}
-        <button class="btn btn-soft" data-action="toggle-fav">${r.favorite ? '★ В избранном' : '☆ В избранное'}</button>
-        <button class="btn btn-soft" data-action="edit">Редактировать</button>
-        <button class="btn btn-danger" data-action="delete">${state.confirmDelete ? 'Точно удалить?' : 'Удалить рецепт'}</button>
+        ${doneList.length ? `<button class="btn btn-ghost" data-action="reset-done">${t('resetDone')}</button>` : ''}
+        <button class="btn btn-soft" data-action="toggle-fav">${r.favorite ? t('inFav') : t('toFav')}</button>
+        <button class="btn btn-soft" data-action="edit">${t('edit')}</button>
+        <button class="btn btn-danger" data-action="delete">${state.confirmDelete ? t('confirmDelete') : t('deleteRecipe')}</button>
       </div>`;
   }
 
   function renderForm() {
     const d = state.draft;
     const options = allCategories().map(c =>
-      `<option value="${esc(c.name)}"${c.name === d.category ? ' selected' : ''}>${c.icon} ${esc(c.name)}</option>`
+      `<option value="${esc(c.name)}"${c.name === d.category ? ' selected' : ''}>${c.icon} ${esc(catLabel(c.name))}</option>`
     ).join('');
     const rows = d.ingredients.map((i, idx) => `
       <div class="ing-row">
-        <input data-f="name" placeholder="Продукт" value="${esc(i.name)}" aria-label="Название ингредиента">
-        <input data-f="amount" placeholder="Кол-во" inputmode="decimal" value="${esc(i.amount)}" aria-label="Количество">
-        <input data-f="unit" placeholder="Ед." value="${esc(i.unit)}" aria-label="Единица измерения">
-        <button class="btn-remove" data-action="remove-row" data-index="${idx}" aria-label="Удалить строку">×</button>
+        <input data-f="name" placeholder="${t('product')}" value="${esc(i.name)}" aria-label="${t('ingName')}">
+        <input data-f="amount" placeholder="${t('amountPh')}" inputmode="decimal" value="${esc(i.amount)}" aria-label="${t('amount')}">
+        <input data-f="unit" placeholder="${t('unitPh')}" value="${esc(i.unit)}" aria-label="${t('unit')}">
+        <button class="btn-remove" data-action="remove-row" data-index="${idx}" aria-label="${t('removeRow')}">×</button>
       </div>`).join('');
     return `
       <header class="head">
-        <h1>${state.editingId ? 'Редактирование' : 'Новый рецепт'}</h1>
+        <h1>${state.editingId ? t('editing') : t('newRecipe')}</h1>
       </header>
       ${state.error ? `<p class="error">${esc(state.error)}</p>` : ''}
       <div class="form">
-        <label>Название
-          <input id="f-name" placeholder="Например, Блины" value="${esc(d.name)}">
+        <label>${t('name')}
+          <input id="f-name" placeholder="${t('recipeNamePh')}" value="${esc(d.name)}">
         </label>
         <div class="photo-box">
-          <p class="field-title">Фото</p>
-          ${d.photo ? `<img class="photo-preview" src="${esc(d.photo)}" alt="Фото рецепта">` : '<p class="sub">Фото пока не добавлено</p>'}
-          <button class="btn btn-soft" data-action="pick-photo">${d.photo ? 'Заменить фото' : 'Добавить фото'}</button>
-          ${d.photo ? '<button class="btn btn-ghost" data-action="remove-photo">Убрать фото</button>' : ''}
+          <p class="field-title">${t('photo')}</p>
+          ${d.photo ? `<img class="photo-preview" src="${esc(d.photo)}" alt="${t('photoAlt')}">` : `<p class="sub">${t('noPhoto')}</p>`}
+          <button class="btn btn-soft" data-action="pick-photo">${d.photo ? t('replacePhoto') : t('addPhoto')}</button>
+          ${d.photo ? `<button class="btn btn-ghost" data-action="remove-photo">${t('removePhoto')}</button>` : ''}
           <input id="f-photo" type="file" accept="image/*" hidden>
         </div>
-        <label>Категория
+        <label>${t('category')}
           <select id="f-cat">${options}</select>
         </label>
         <div class="row2">
-          <label>Время, мин
+          <label>${t('timeMin')}
             <input id="f-time" type="number" inputmode="numeric" min="0" value="${esc(d.time)}">
           </label>
-          <label>Порций
+          <label>${t('servingsLabel')}
             <input id="f-serv" type="number" inputmode="numeric" min="1" value="${esc(d.servings)}">
           </label>
         </div>
         <fieldset class="ingr-set">
-          <legend>Ингредиенты</legend>
+          <legend>${t('ingredients')}</legend>
           <div id="ing-list">${rows}</div>
-          <button class="btn btn-soft" data-action="add-row">+ Добавить ингредиент</button>
+          <button class="btn btn-soft" data-action="add-row">${t('addIngredient')}</button>
         </fieldset>
-        <label>Приготовление
-          <textarea id="f-steps" rows="8" placeholder="Каждый шаг — с новой строки">${esc(d.steps)}</textarea>
+        <label>${t('cooking')}
+          <textarea id="f-steps" rows="8" placeholder="${t('stepsPh')}">${esc(d.steps)}</textarea>
         </label>
         <div class="actions">
-          <button class="btn btn-primary" data-action="save">Сохранить</button>
-          <button class="btn btn-ghost" data-action="cancel">Отмена</button>
+          <button class="btn btn-primary" data-action="save">${t('save')}</button>
+          <button class="btn btn-ghost" data-action="cancel">${t('cancel')}</button>
         </div>
       </div>`;
   }
@@ -1007,7 +1128,7 @@
   function render() {
     const views = { home: renderHome, favs: renderFavs, category: renderCategory, recipe: renderRecipe, form: renderForm, 'cat-form': renderCatForm };
     const body = views[state.view]();
-    const back = state.view === 'home' ? '' : '<div class="top"><button class="back" data-action="back">← Назад</button></div>';
+    const back = state.view === 'home' ? '' : `<div class="top"><button class="back" data-action="back">${t('back')}</button></div>`;
     app.innerHTML = back + body;
 
     if (state.view !== lastView) {
@@ -1035,13 +1156,13 @@
       .filter(i => i.name);
     const steps = d.steps.split('\n').map(s => s.trim()).filter(Boolean);
 
-    if (!title) return { error: 'Введите название рецепта.' };
-    if (title.length > 80) return { error: 'Название не длиннее 80 символов.' };
-    if (!allCategories().some(c => c.name === d.category)) return { error: 'Выберите категорию.' };
-    if (time && !/^\d+$/.test(time)) return { error: 'Время укажите целым числом минут.' };
-    if (!/^\d+$/.test(servings) || Number(servings) < 1) return { error: 'Порций должно быть не меньше одной.' };
-    if (!ingredients.length) return { error: 'Добавьте хотя бы один ингредиент.' };
-    if (!steps.length) return { error: 'Опишите приготовление.' };
+    if (!title) return { error: t('errTitle') };
+    if (title.length > 80) return { error: t('errTitleLong') };
+    if (!allCategories().some(c => c.name === d.category)) return { error: t('errCat') };
+    if (time && !/^\d+$/.test(time)) return { error: t('errTime') };
+    if (!/^\d+$/.test(servings) || Number(servings) < 1) return { error: t('errServ') };
+    if (!ingredients.length) return { error: t('errIngr') };
+    if (!steps.length) return { error: t('errSteps') };
 
     return {
       recipe: {
@@ -1058,10 +1179,10 @@
 
   function parseCategory(c, existing) {
     const name = c.name.trim();
-    if (!name) return { error: 'Введите название категории.' };
-    if (name.length > 30) return { error: 'Название категории не длиннее 30 символов.' };
-    if (existing.some(x => x.name.toLowerCase() === name.toLowerCase())) return { error: 'Такая категория уже есть.' };
-    if (!c.icon) return { error: 'Выберите эмодзи.' };
+    if (!name) return { error: t('errCatName') };
+    if (name.length > 30) return { error: t('errCatLong') };
+    if (existing.some(x => x.name.toLowerCase() === name.toLowerCase())) return { error: t('errCatExists') };
+    if (!c.icon) return { error: t('errEmoji') };
     return { category: { name, icon: c.icon, color: PALETTE[(existing.length - CATEGORIES.length) % PALETTE.length] } };
   }
 
@@ -1080,7 +1201,7 @@
       ? recipes.map(r => (r.id === recipe.id ? recipe : r))
       : [recipe, ...recipes];
     if (!writeJSON(KEY, next)) {
-      return fail('Не удалось сохранить: не хватает места в хранилище. Уберите фото у других рецептов.');
+      return fail(t('errStorage'));
     }
     recipes = next;
 
@@ -1136,12 +1257,12 @@
         const lang = document.getElementById('t-lang').value.trim();
         if (!r || state.translating) break;
         if (!lang) {
-          state.translateError = 'Выберите язык.';
+          state.translateError = t('errLang');
           render();
           break;
         }
         if (!tg || !tg.initData) {
-          state.translateError = 'Перевод работает только внутри Telegram.';
+          state.translateError = t('errOnlyTg');
           render();
           break;
         }
@@ -1160,13 +1281,20 @@
         })
           .then(res => (res.ok ? res.json() : Promise.reject(new Error(res.status))))
           .then(data => { state.translation = { id: r.id, lang, recipe: data.recipe }; })
-          .catch(() => { state.translateError = 'Не удалось перевести. Попробуйте ещё раз.'; })
+          .catch(() => { state.translateError = t('errTranslate'); })
           .finally(() => {
             state.translating = false;
             render();
           });
         break;
       }
+
+      case 'ui-lang':
+        uiLang = el.dataset.lang;
+        writeJSON(UI_LANG_KEY, uiLang);
+        applyDir();
+        render();
+        break;
 
       case 'show-original':
         state.translation = null;
@@ -1248,7 +1376,7 @@
         const res = parseCategory(readCatForm(), allCategories());
         if (res.error) return fail(res.error);
         const next = [...customCats, res.category];
-        if (!writeJSON(CATS_KEY, next)) return fail('Не удалось сохранить категорию: не хватает места в хранилище.');
+        if (!writeJSON(CATS_KEY, next)) return fail(t('errCatStorage'));
         customCats = next;
         goBack();
         break;
@@ -1298,7 +1426,7 @@
         state.error = '';
         render();
       })
-      .catch(() => fail('Не удалось открыть фото. Выберите другой файл.'));
+      .catch(() => fail(t('errPhotoFile')));
   });
 
   if (tg && tg.BackButton) tg.BackButton.onClick(goBack);
@@ -1306,6 +1434,7 @@
   recipes = loadRecipes();
   customCats = readJSON(CATS_KEY, []);
   done = readJSON(DONE_KEY, {});
+  applyDir();
   render();
   syncFromServer();
 </script>

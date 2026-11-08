@@ -7,18 +7,52 @@ const { readVideo } = require('../lib/video');
 const { isVideoLink, downloadVideo } = require('../lib/download');
 const { waitUntil } = require('@vercel/functions');
 
-const GREETINGS = {
-  ru: 'Привет! Пришлите ссылку на рецепт, текст рецепта или фото. Я подготовлю черновик, а сохранить его решите вы.',
-  en: 'Hi! Send a recipe link, the recipe text or a photo. I will prepare a draft, and you decide whether to save it.',
-  he: 'שלום! שלחו קישור למתכון, טקסט של מתכון או תמונה. אכין טיוטה, ואתם תחליטו אם לשמור אותה.',
-  ar: 'مرحبًا! أرسلوا رابطًا لوصفة أو نص الوصفة أو صورة. سأحضّر مسودة، وتقررون إن كنتم تريدون حفظها.',
+// Bot replies in the user's Telegram language; unknown languages get English
+const TEXTS = {
+  ru: {
+    hello: 'Привет! Пришлите ссылку на рецепт, текст рецепта, фото или видео. Я подготовлю черновик, а сохранить его решите вы.',
+    failed: 'Не удалось разобрать рецепт, попробуйте другой текст или фото',
+    storeFailed: 'Не удалось сохранить черновик, попробуйте ещё раз',
+    tooLarge: 'Видео больше 20 МБ, бот такое скачать не может. Пришлите видео покороче.',
+    watching: 'Смотрю видео, это займёт до минуты…',
+    reading: 'Читаю рецепт…',
+    ingredients: 'Ингредиенты:',
+    steps: 'Шаги:',
+    save: 'Сохранить',
+    saved: 'Сохранено',
+    notFound: 'Не найдено или уже сохранено',
+  },
+  en: {
+    hello: 'Hi! Send a recipe link, the recipe text, a photo or a video. I will prepare a draft, and you decide whether to save it.',
+    failed: 'Could not read the recipe, try another text or photo',
+    storeFailed: 'Could not save the draft, please try again',
+    tooLarge: 'The video is over 20 MB, the bot cannot download it. Send a shorter video.',
+    watching: 'Watching the video, this takes up to a minute…',
+    reading: 'Reading the recipe…',
+    ingredients: 'Ingredients:',
+    steps: 'Steps:',
+    save: 'Save',
+    saved: 'Saved',
+    notFound: 'Not found or already saved',
+  },
+  he: {
+    hello: 'שלום! שלחו קישור למתכון, טקסט של מתכון, תמונה או סרטון. אכין טיוטה, ואתם תחליטו אם לשמור אותה.',
+    failed: 'לא הצלחתי לקרוא את המתכון, נסו טקסט או תמונה אחרים',
+    storeFailed: 'לא הצלחתי לשמור את הטיוטה, נסו שוב',
+    tooLarge: 'הסרטון גדול מ-20 MB, הבוט לא יכול להוריד אותו. שלחו סרטון קצר יותר.',
+    watching: 'צופה בסרטון, זה ייקח עד דקה…',
+    reading: 'קורא את המתכון…',
+    ingredients: 'מצרכים:',
+    steps: 'אופן ההכנה:',
+    save: 'שמירה',
+    saved: 'נשמר',
+    notFound: 'לא נמצא או כבר נשמר',
+  },
 };
-const FAILED = 'Не удалось разобрать рецепт, попробуйте другой текст или фото';
-const STORE_FAILED = 'Не удалось сохранить черновик, попробуйте ещё раз';
+const textsFor = (from) => TEXTS[((from && from.language_code) || '').slice(0, 2)] || TEXTS.en;
 const MAX_TEXT = 8000;
 // base64 adds a third to the size and the API caps images at 5 MB
 const MAX_PHOTO_BYTES = 3.5 * 1024 * 1024;
-const VIDEO_TOO_LARGE = 'Видео больше 20 МБ, бот такое скачать не может. Пришлите видео покороче.';
 // Telegram lets bots download files up to 20 MB
 const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
 const MEDIA_TYPES = { '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif' };
@@ -40,14 +74,14 @@ function sameSecret(header, secret) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-function formatDraft(draft) {
+function formatDraft(draft, t) {
   const text = [
     draft.title,
     '',
-    'Ингредиенты:',
+    t.ingredients,
     ...draft.ingredients.map((item) => `• ${item}`),
     '',
-    'Шаги:',
+    t.steps,
     ...draft.steps.map((step, i) => `${i + 1}. ${step}`),
   ].join('\n');
   return text.slice(0, 4000); // Telegram caps one message at 4096 characters
@@ -104,33 +138,31 @@ async function handleMessage(message, deps) {
   const chatId = message.chat.id;
   const text = (message.text || '').trim();
   const say = (body, replyMarkup) => tg.sendMessage(token, chatId, body, replyMarkup);
+  const t = textsFor(message.from);
 
-  if (/^\/start(\s|$)/.test(text)) {
-    const lang = ((message.from && message.from.language_code) || '').slice(0, 2);
-    return say(GREETINGS[lang] || GREETINGS.en);
-  }
+  if (/^\/start(\s|$)/.test(text)) return say(t.hello);
   const video = videoOf(message);
   if (!message.photo && !video && !text) return;
-  if (video && (video.file_size || 0) > MAX_VIDEO_BYTES) return say(VIDEO_TOO_LARGE);
+  if (video && (video.file_size || 0) > MAX_VIDEO_BYTES) return say(t.tooLarge);
 
-  await say(video || isVideoLink(text) ? 'Смотрю видео, это займёт до минуты…' : 'Читаю рецепт…');
+  await say(video || isVideoLink(text) ? t.watching : t.reading);
   let made;
   try {
     made = await makeDraft(message, deps);
     if (!made.draft.title) throw new Error('no recipe found');
   } catch (err) {
     console.error('extract failed', err.message);
-    return say(FAILED);
+    return say(t.failed);
   }
 
   try {
     const { draft, photo } = made;
     const photoUrl = photo ? await deps.store.savePhoto(message.from.id, photo.bytes, photo.mediaType) : null;
     const id = await deps.store.saveDraft(message.from.id, draft, photoUrl);
-    return say(formatDraft(draft), { inline_keyboard: [[{ text: 'Сохранить', callback_data: `save:${id}` }]] });
+    return say(formatDraft(draft, t), { inline_keyboard: [[{ text: t.save, callback_data: `save:${id}` }]] });
   } catch (err) {
     console.error('store failed', err.message);
-    return say(STORE_FAILED);
+    return say(t.storeFailed);
   }
 }
 
@@ -139,7 +171,8 @@ async function handleCallback(query, deps) {
   const [action, draftId] = (query.data || '').split(':');
   if (action !== 'save') return;
   const saved = await deps.store.saveRecipe(query.from.id, draftId);
-  return tg.answerCallbackQuery(token, query.id, saved ? 'Сохранено' : 'Не найдено или уже сохранено');
+  const t = textsFor(query.from);
+  return tg.answerCallbackQuery(token, query.id, saved ? t.saved : t.notFound);
 }
 
 // Telegram retries any update that does not get 200, so every path ends with 200.

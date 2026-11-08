@@ -18,7 +18,7 @@ function load(storage = {}) {
   });
   const sandbox = {
     window: { Telegram: undefined, scrollTo() {} },
-    document: { getElementById: el, querySelectorAll: () => [], createElement: el },
+    document: { getElementById: el, querySelectorAll: () => [], createElement: el, documentElement: {} },
     localStorage: {
       getItem: k => (store.has(k) ? store.get(k) : null),
       setItem: (k, v) => store.set(k, String(v)),
@@ -29,7 +29,7 @@ function load(storage = {}) {
     console
   };
   // Expose internals: top-level const/let are not visible from outside the script
-  const exposed = 'globalThis.__app = { parseRecipe, parseCategory, missingSeeds, newFromServer, loadRecipes, SEED, CATEGORIES, PALETTE, CATS_KEY, KEY, OFFERED_KEY };';
+  const exposed = 'globalThis.__app = { parseRecipe, parseCategory, missingSeeds, newFromServer, pickUiLang, I18N, loadRecipes, SEED, CATEGORIES, PALETTE, CATS_KEY, KEY, OFFERED_KEY };';
   vm.createContext(sandbox);
   vm.runInContext(script + '\n' + exposed, sandbox);
   return { app: sandbox.__app, store };
@@ -168,4 +168,18 @@ test('newFromServer: bot recipes are imported once and keep their photo', () => 
   assert.equal(first.add[0].photo, 'https://blob.test/p.jpg');
   assert.deepEqual(first.imported, ['a']);
   assert.equal(app.newFromServer(server, ['a']).add.length, 0);
+});
+
+test('pickUiLang: saved choice, then Telegram language, English for unknown, Russian with no hint', () => {
+  const { app } = load();
+  assert.equal(app.pickUiLang('he', 'en'), 'he');
+  assert.equal(app.pickUiLang('', 'en-US'), 'en');
+  assert.equal(app.pickUiLang('', 'ja'), 'en');
+  assert.equal(app.pickUiLang('', undefined), 'ru');
+});
+
+test('every interface language has the same keys', () => {
+  const { app } = load();
+  const keys = Object.keys(app.I18N.ru).sort().join();
+  for (const lang of Object.keys(app.I18N)) assert.equal(Object.keys(app.I18N[lang]).sort().join(), keys, lang);
 });
