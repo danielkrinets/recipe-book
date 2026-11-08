@@ -101,13 +101,9 @@ async function draftFromVideo(bytes, caption, { extract, video: readFrames }) {
   return { draft, photo: { bytes: frames[Math.floor(frames.length * 0.8)], mediaType: 'image/jpeg' } };
 }
 
-// Title and description stand in for the video; the thumbnail helps the model and becomes the photo
+// Title and description stand in for the video; the thumbnail only becomes the photo (a picture next to the text made the model skip the recipe)
 async function draftFromYoutube({ title, description, thumbnail }, extract) {
-  console.log(`youtube info: title "${title}", description ${description.length} chars: ${description.slice(0, 150).replace(/\n/g, ' ')}`);
-  const text = `Video title: ${title}\n\nVideo description: ${description || '(none)'}`;
-  const draft = thumbnail
-    ? await extract({ images: [{ base64: thumbnail.toString('base64'), mediaType: 'image/jpeg' }], text })
-    : await extract({ text });
+  const draft = await extract({ text: `Video title: ${title}\n\nVideo description: ${description || '(none)'}` });
   return { draft, photo: thumbnail ? { bytes: thumbnail, mediaType: 'image/jpeg' } : null };
 }
 

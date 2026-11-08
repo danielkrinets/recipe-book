@@ -252,7 +252,7 @@ test('the bot speaks the user\'s Telegram language and falls back to English', a
   assert.equal((await say('ja'))[0].text, 'Reading the recipe…');
 });
 
-test('a YouTube link that cannot be downloaded uses the title, description and thumbnail', async () => {
+test('a YouTube link that cannot be downloaded uses the title and description as text, the thumbnail as the photo', async () => {
   const tg = fakeTelegram();
   const store = fakeStore();
   const extracted = [];
@@ -263,7 +263,7 @@ test('a YouTube link that cannot be downloaded uses the title, description and t
   await call({ body: update({ text: 'https://youtube.com/shorts/abcdefghijk?si=x' }), extract, download, youtube, tg, store });
   assert.deepEqual(asked, ['abcdefghijk']);
   assert.equal(extracted[0].text, 'Video title: Пицца\n\nVideo description: мука 300 г');
-  assert.equal(extracted[0].images.length, 1);
+  assert.equal(extracted[0].images, undefined);
   assert.equal(store.calls[0].method, 'savePhoto');
   assert.match(tg.calls.at(-1).text, /Блины/);
 });
