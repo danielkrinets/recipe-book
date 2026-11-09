@@ -52,7 +52,7 @@ function fakeStore({ saved = true, fail = false } = {}) {
 }
 
 // Minimal stand-in for Vercel's req/res
-async function call({ method = 'POST', secret = SECRET, body = {}, extract, video, download, youtube, tg, store = fakeStore() }) {
+async function call({ method = 'POST', secret = SECRET, body = {}, extract, video, download, youtube, gemini = null, thumbnail = async () => Buffer.from('thumb'), tg, store = fakeStore() }) {
   const res = {
     statusCode: 200,
     body: null,
@@ -61,7 +61,7 @@ async function call({ method = 'POST', secret = SECRET, body = {}, extract, vide
   };
   const headers = secret === null ? {} : { 'x-telegram-bot-api-secret-token': secret };
   const deferred = [];
-  await createHandler({ extract, video, download, youtube, tg, store, defer: (p) => deferred.push(p) })({ method, headers, body }, res);
+  await createHandler({ extract, video, download, youtube, gemini, thumbnail, tg, store, defer: (p) => deferred.push(p) })({ method, headers, body }, res);
   await Promise.all(deferred);
   return res;
 }
@@ -104,7 +104,7 @@ test('plain text goes to extractDraft as text and the draft is sent back', async
   const extract = async (input) => { extracted.push(input); return DRAFT; };
   const res = await call({ body: update({ text: 'Блины: мука, молоко' }), extract, tg });
   assert.equal(res.statusCode, 200);
-  assert.deepEqual(extracted, [{ text: 'Блины: мука, молоко' }]);
+  assert.deepEqual(extracted.map(({ categories, ...rest }) => rest), [{ text: 'Блины: мука, молоко' }]);
   assert.match(tg.calls.at(-1).text, /Блины/);
 });
 
@@ -113,7 +113,7 @@ test('a link goes to extractDraft as url', async () => {
   const extracted = [];
   const extract = async (input) => { extracted.push(input); return DRAFT; };
   await call({ body: update({ text: 'https://example.com/pancakes' }), extract, tg });
-  assert.deepEqual(extracted, [{ url: 'https://example.com/pancakes' }]);
+  assert.deepEqual(extracted.map(({ categories, ...rest }) => rest), [{ url: 'https://example.com/pancakes' }]);
 });
 
 test('a private-network link is refused before extraction', async () => {
@@ -134,7 +134,7 @@ test('a photo is downloaded, base64-encoded and sent to extractDraft', async () 
   await call({ body: update({ photo }), extract, tg });
   assert.deepEqual(tg.calls.slice(1).map((c) => c.method), ['getFile', 'downloadFile', 'sendMessage']);
   assert.equal(tg.calls[1].fileId, 'big');
-  assert.deepEqual(extracted, [{ imageBase64: Buffer.from('img').toString('base64'), mediaType: 'image/jpeg' }]);
+  assert.deepEqual(extracted.map(({ categories, ...rest }) => rest), [{ imageBase64: Buffer.from('img').toString('base64'), mediaType: 'image/jpeg' }]);
 });
 
 test('extraction failure still returns 200 and tells the user', async () => {
@@ -235,7 +235,7 @@ test('when a video link cannot be downloaded, the page text is used instead', as
   const download = async () => { throw new Error('login required'); };
   const extract = async (input) => { extracted.push(input); return DRAFT; };
   await call({ body: update({ text: 'https://www.tiktok.com/@a/video/1' }), extract, download, tg });
-  assert.deepEqual(extracted, [{ url: 'https://www.tiktok.com/@a/video/1' }]);
+  assert.deepEqual(extracted.map(({ categories, ...rest }) => rest), [{ url: 'https://www.tiktok.com/@a/video/1' }]);
   assert.match(tg.calls.at(-1).text, /Блины/);
 });
 
@@ -274,4 +274,16 @@ test('when YouTube refuses the link, the bot says what to send instead', async (
   const youtube = async () => { throw new Error('no description'); };
   await call({ body: update({ text: 'https://youtu.be/abcdefghijk' }), extract: async () => DRAFT, download, youtube, tg });
   assert.match(tg.calls.at(-1).text, /YouTube не отдаёт/);
+});
+
+test('with a Gemini key, a YouTube link is watched by Gemini and the draft shows category and time', async () => {
+  const tg = fakeTelegram();
+  const watched = [];
+  const gemini = async (url) => { watched.push(url); return { ...DRAFT, category: 'Выпечка', time: 40, timeEstimated: true, ingredients: [{ name: 'мука', amount: '300', unit: 'г' }] }; };
+  const youtube = async () => { throw new Error('should not be needed'); };
+  await call({ body: update({ text: 'https://youtube.com/shorts/abcdefghijk' }), extract: async () => DRAFT, youtube, gemini, tg });
+  assert.deepEqual(watched, ['https://www.youtube.com/watch?v=abcdefghijk']);
+  const text = tg.calls.at(-1).text;
+  assert.match(text, /Выпечка · ≈ 40 мин/);
+  assert.match(text, /• мука — 300 г/);
 });

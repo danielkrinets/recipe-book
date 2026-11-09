@@ -3,341 +3,193 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="color-scheme" content="light">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#1D1520">
 <title>Книга рецептов</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #FBF6EE;
-    --card: #FFFFFF;
-    --text: #3B3228;
-    --muted: #7F7060;
-    --green: #A8C5A0;
-    --green-soft: #E4EFDF;
-    --green-dark: #3E6A46;
-    --orange: #E0834A;
-    --orange-dark: #B9612A;
-    --danger: #B4493A;
-    --danger-soft: #F6E1DC;
-    --line: #E9DCC9;
+    --bg: #1D1520;
+    --surface: #2A2030;
+    --surface-2: #362A3D;
+    --text: #F5EDE4;
+    --muted: #B4A3B3;
+    --accent: #F2B33D;
+    --accent-ink: #2A1A05;
+    --danger: #F0857A;
+    --line: rgba(245, 237, 228, 0.12);
+    --safe-top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+    --safe-bottom: calc(var(--tg-safe-area-inset-bottom, 0px) + env(safe-area-inset-bottom, 0px));
+    --r-lg: 22px;
+    --r-md: 14px;
+    color-scheme: dark;
   }
 
   * { box-sizing: border-box; }
-
   html, body { margin: 0; padding: 0; }
-
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 16px;
-    line-height: 1.5;
+    font: 400 16px/1.5 'Rubik', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
   }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .icon { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  [dir="rtl"] .flip { transform: scaleX(-1); }
 
   .app {
-    max-width: 450px;
-    min-height: 100vh;
+    max-width: 640px;
     margin: 0 auto;
-    padding: 16px 16px 32px;
+    padding: calc(var(--safe-top) + 20px) 16px calc(var(--safe-bottom) + 96px);
   }
+  .app.hero-view { padding-top: 0; }
 
-  h1 { font-size: 26px; line-height: 1.2; margin: 0 0 4px; }
-  h2 { font-size: 19px; margin: 0 0 12px; }
-
-  .head { margin: 8px 0 16px; }
-  .sub { margin: 0; color: var(--muted); }
-
-  .top { margin-bottom: 8px; }
-
+  /* Header */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
   .back {
-    background: none;
-    border: none;
-    padding: 8px 0;
-    font: inherit;
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--green-dark);
-    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 0; background: var(--surface); border-radius: 999px; padding: 9px 16px 9px 12px; font-weight: 500;
   }
+  .home-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+  h1 { font-size: 34px; line-height: 1.05; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+  h2 { font-size: 20px; font-weight: 600; margin: 0 0 12px; }
+  .sub { margin: 4px 0 0; color: var(--muted); }
+  .langs { display: inline-flex; background: var(--surface); border-radius: 999px; padding: 3px; flex: none; }
+  .lang { border: 0; background: transparent; border-radius: 999px; padding: 5px 10px; font-size: 13px; color: var(--muted); }
+  .lang.on { background: var(--surface-2); color: var(--text); }
 
-  .search {
-    width: 100%;
-    margin-bottom: 16px;
-    padding: 14px 16px;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    background: var(--card);
-    color: var(--text);
-    font: inherit;
-    font-size: 16px;
-    outline: none;
+  /* Import */
+  .import { background: var(--surface); border-radius: var(--r-lg); padding: 16px; margin-bottom: 18px; }
+  .import h2 { margin-bottom: 10px; }
+  .import textarea {
+    width: 100%; min-height: 52px; max-height: 180px; resize: vertical;
+    background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; line-height: 1.4;
   }
+  .import textarea::placeholder, .field::placeholder, .search input::placeholder { color: var(--muted); opacity: 0.8; }
+  .import-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+  .hint { color: var(--muted); font-size: 14px; margin: 0; }
+  .link-btn { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+  .progress { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: var(--muted); }
+  .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-  input:focus, select:focus, textarea:focus, .search:focus { border-color: var(--green-dark); }
-
-  .cat-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-
-  .cat-card {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    min-height: 110px;
-    padding: 18px 14px;
-    border: none;
-    border-radius: 18px;
-    color: var(--text);
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .cat-icon { font-size: 32px; line-height: 1.1; }
-  .cat-name { font-size: 18px; font-weight: 700; }
-  .cat-count { font-size: 14px; color: var(--muted); }
-
-  .recipe-list { display: grid; gap: 10px; margin-bottom: 20px; }
-
-  .recipe-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    width: 100%;
-    padding: 14px 16px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: var(--card);
-    color: var(--text);
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .ri-photo { width: 64px; height: 64px; flex: none; object-fit: cover; border-radius: 12px; }
-  .ri-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .ri-title { font-size: 18px; font-weight: 700; }
-  .ri-meta { font-size: 15px; color: var(--muted); }
-
-  .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
-  .emoji {
-    aspect-ratio: 1;
-    border: 2px solid transparent;
-    border-radius: 12px;
-    background: var(--card);
-    font-size: 24px;
-    cursor: pointer;
-  }
-  .emoji.on { border-color: var(--green-dark); background: var(--green-soft); }
-
-  .empty { margin: 8px 0 20px; padding: 24px 8px; color: var(--muted); text-align: center; }
-  .bot-hint { margin: 0 0 16px; padding: 14px 16px; border-radius: 14px; background: var(--card); line-height: 1.45; }
-  .bot-hint .btn { margin-top: 12px; }
-
+  /* Buttons */
   .btn {
-    display: block;
-    width: 100%;
-    min-height: 52px;
-    padding: 14px 18px;
-    border: none;
-    border-radius: 14px;
-    font: inherit;
-    font-size: 17px;
-    font-weight: 600;
-    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border: 0; border-radius: 999px; padding: 12px 20px; font-weight: 600; min-height: 46px;
   }
-
-  .btn-primary { background: var(--orange); color: #FFFFFF; }
-  .btn-primary:active { background: var(--orange-dark); }
-  .btn-soft { background: var(--green-soft); color: var(--green-dark); }
-  .btn-soft:active { background: var(--green); }
+  .btn[disabled] { opacity: 0.5; }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); }
+  .btn-soft { background: var(--surface-2); color: var(--text); }
   .btn-ghost { background: transparent; color: var(--muted); }
-  .btn-danger { background: var(--danger-soft); color: var(--danger); }
-
-  .btn-round {
-    width: 52px;
-    height: 52px;
-    flex-shrink: 0;
-    padding: 0;
-    border-radius: 50%;
-    font-size: 26px;
-    line-height: 1;
+  .btn-danger { background: transparent; color: var(--danger); }
+  .btn-round { width: 44px; min-height: 44px; padding: 0; }
+  .fab {
+    position: fixed; inset-inline-end: max(16px, calc(50vw - 304px)); bottom: calc(var(--safe-bottom) + 20px);
+    width: 58px; height: 58px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink);
+    display: grid; place-items: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); z-index: 5;
   }
+  .fab .icon { width: 26px; height: 26px; stroke-width: 2.4; }
 
-  .actions { display: grid; gap: 12px; margin-top: 24px; }
-
-  .tag {
-    display: inline-block;
-    margin-bottom: 8px;
-    padding: 4px 12px;
-    border-radius: 999px;
-    font-size: 15px;
-    font-weight: 600;
+  /* Search and chips */
+  .search { position: relative; margin-bottom: 14px; }
+  .search .icon { position: absolute; inset-inline-start: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+  .search input {
+    width: 100%; border: 0; background: var(--surface); border-radius: 999px; padding: 13px 16px 13px 44px;
   }
-
-  .recipe-title { font-size: 30px; }
-  .meta { margin: 0 0 16px; color: var(--muted); font-size: 17px; }
-
-  .card {
-    margin-bottom: 16px;
-    padding: 16px;
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    background: var(--card);
+  [dir="rtl"] .search input { padding: 13px 44px 13px 16px; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px 22px; padding: 2px 16px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px; flex: none; white-space: nowrap;
+    border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 8px 14px; font-weight: 500;
   }
+  .chip .count { color: var(--muted); font-weight: 400; }
+  .chip.add { border-style: dashed; color: var(--muted); }
 
-  .servings {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 12px;
+  /* Recipe tiles */
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .tile {
+    position: relative; display: block; aspect-ratio: 4 / 5; border: 0; padding: 0; overflow: hidden;
+    border-radius: var(--r-lg); background: var(--surface); text-align: start;
   }
+  .tile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .tile .no-photo { position: absolute; inset: 0; display: grid; place-items: center; font-size: 54px; background: color-mix(in srgb, var(--c, #888) 22%, var(--surface)); }
+  .tile .shade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(20, 12, 22, 0.92) 0%, rgba(20, 12, 22, 0.15) 55%, transparent 75%); }
+  .tile .t-text { position: absolute; inset-inline: 12px; bottom: 12px; }
+  .tile .t-title { display: block; font-weight: 600; font-size: 16px; line-height: 1.2; color: #fff; }
+  .tile .t-meta { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 13px; color: rgba(255, 255, 255, 0.75); }
+  .tile .t-meta .icon { width: 14px; height: 14px; }
+  .tile .t-star { position: absolute; top: 10px; inset-inline-end: 10px; color: var(--accent); }
+  .tile .t-star .icon { fill: currentColor; width: 18px; height: 18px; }
+  .empty { color: var(--muted); padding: 24px 0; margin: 0; }
 
-  .serv-val { font-size: 18px; font-weight: 600; }
+  /* Recipe page */
+  .hero { position: relative; margin: 0 -16px; min-height: 300px; height: 58vh; max-height: 520px; overflow: hidden; background: var(--surface); }
+  .hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .hero .no-photo { position: absolute; inset: 0; display: grid; place-items: center; font-size: 96px; background: color-mix(in srgb, var(--c, #888) 25%, var(--surface)); }
+  .hero .shade { position: absolute; inset: 0; background: linear-gradient(to top, var(--bg) 2%, rgba(29, 21, 32, 0.55) 40%, transparent 70%); }
+  .hero .back { position: absolute; top: calc(var(--safe-top) + 14px); inset-inline-start: 16px; background: rgba(29, 21, 32, 0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  .hero-text { position: absolute; inset-inline: 16px; bottom: 18px; }
+  .recipe-title { font-size: 40px; line-height: 1.02; font-weight: 800; letter-spacing: -0.025em; margin: 10px 0 0; text-wrap: balance; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tag { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 5px 12px; font-size: 14px; background: rgba(29, 21, 32, 0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  .tag.ai { color: var(--accent); }
+  .tag .icon { width: 16px; height: 16px; }
+  .facts { display: flex; flex-wrap: wrap; gap: 18px; margin: 18px 0 16px; color: var(--muted); }
+  .fact { display: inline-flex; align-items: center; gap: 7px; }
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+  .tool { display: inline-flex; align-items: center; gap: 8px; border: 0; background: var(--surface); border-radius: 999px; padding: 10px 16px; font-weight: 500; }
+  .tool.on { color: var(--accent); }
+  .tool.on .icon-star { fill: currentColor; }
+  .translate { display: flex; gap: 8px; margin: -14px 0 28px; flex-wrap: wrap; align-items: center; }
+  .translate input { flex: 1 1 160px; min-width: 0; border: 0; background: var(--surface); border-radius: 999px; padding: 11px 16px; }
 
+  .section { margin-bottom: 30px; }
+  .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .section-head h2 { margin: 0; }
+  .servings { display: inline-flex; align-items: center; gap: 4px; background: var(--surface); border-radius: 999px; padding: 3px; }
+  .servings .btn-round { background: transparent; min-height: 38px; width: 38px; }
+  .serv-val { min-width: 84px; text-align: center; font-weight: 500; }
   .ingr { list-style: none; margin: 0; padding: 0; }
+  .ingr li { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .ingr b { font-weight: 500; color: var(--accent); white-space: nowrap; }
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .step { display: grid; grid-template-columns: 44px 1fr; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .step-num { font-size: 30px; line-height: 1; font-weight: 800; color: var(--accent); }
+  .step.done .step-num { color: var(--muted); }
+  .step.done .step-text { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .step-num .icon { width: 28px; height: 28px; stroke-width: 2.4; }
+  .end-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
 
-  .ingr li {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 0;
-    border-bottom: 1px dashed var(--line);
-  }
-
-  .ingr li:last-child { border-bottom: none; }
-  .ingr b { font-weight: 600; white-space: nowrap; }
-
-  .steps { list-style: none; display: grid; gap: 10px; margin: 0 0 16px; padding: 0; }
-
-  .step {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 14px 16px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: var(--card);
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .step.done { background: var(--green-soft); border-color: var(--green); }
-  .step.done span:last-child { color: var(--muted); text-decoration: line-through; }
-
-  .check {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-    border: 2px solid var(--green-dark);
-    border-radius: 50%;
-    color: var(--green-dark);
-    font-weight: 700;
-  }
-
-  .step.done .check { background: var(--green-dark); color: #FFFFFF; }
-
+  /* Forms */
+  .head { margin-bottom: 18px; }
   .form { display: grid; gap: 16px; }
-
-  .form label { display: grid; gap: 6px; font-size: 16px; font-weight: 600; }
-
-  .translate { display: grid; gap: 10px; margin: 0 0 20px; }
-  .ui-langs { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
-  .ui-lang { border: 1px solid var(--line); background: transparent; color: inherit; border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 14px; cursor: pointer; }
-  .ui-lang.on { background: var(--green-dark); border-color: var(--green-dark); color: #fff; }
-
-  .form input, .form select, .form textarea, .translate input {
-    width: 100%;
-    padding: 12px 14px;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    background: var(--card);
-    color: var(--text);
-    font: inherit;
-    font-size: 16px;
-    font-weight: 400;
-    outline: none;
+  .form label, .field-title { display: grid; gap: 6px; color: var(--muted); font-size: 14px; margin: 0; }
+  .form input, .form select, .form textarea {
+    width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-md); padding: 12px 14px; color: var(--text);
   }
-
-  .form textarea { min-height: 160px; resize: vertical; }
-
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-  .ingr-set {
-    margin: 0;
-    padding: 12px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: var(--card);
-  }
-
-  .ingr-set legend { padding: 0 6px; font-size: 17px; font-weight: 700; }
-
-  .ing-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 40px;
-    gap: 6px;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-
-  .ing-row input { padding: 10px 8px; }
-
-  .btn-remove {
-    width: 40px;
-    height: 44px;
-    padding: 0;
-    border: none;
-    background: none;
-    color: var(--danger);
-    font-size: 24px;
-    cursor: pointer;
-  }
-
-  .error {
-    margin: 0 0 16px;
-    padding: 12px 14px;
-    border-radius: 12px;
-    background: var(--danger-soft);
-    color: var(--danger);
-    font-weight: 600;
-  }
-
-  .recipe-photo {
-    display: block;
-    width: 100%;
-    max-height: 280px;
-    margin: 0 0 16px;
-    object-fit: cover;
-    border: 1px solid var(--line);
-    border-radius: 18px;
-  }
-
+  .ingr-set { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .ingr-set legend { color: var(--muted); font-size: 14px; margin-bottom: 6px; }
+  .ing-row { display: grid; grid-template-columns: 1fr 72px 64px 36px; gap: 6px; }
+  .btn-remove { border: 0; background: transparent; color: var(--muted); display: grid; place-items: center; }
   .photo-box { display: grid; gap: 10px; }
-  .field-title { margin: 0; font-weight: 600; }
+  .photo-preview { width: 100%; max-height: 260px; object-fit: cover; border-radius: var(--r-md); }
+  .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+  .emoji { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; font-size: 22px; aspect-ratio: 1; }
+  .emoji.on { border-color: var(--accent); background: var(--surface-2); }
+  .actions { display: grid; gap: 10px; margin-top: 8px; }
+  .error { color: var(--danger); margin: 0; }
 
-  .photo-preview {
-    display: block;
-    width: 100%;
-    max-height: 240px;
-    object-fit: cover;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-  }
-
-  @media (max-width: 360px) {
-    .cat-grid { gap: 10px; }
-    .recipe-title { font-size: 26px; }
-    .ing-row { grid-template-columns: 1.6fr 1fr 1fr 36px; }
+  @media (prefers-reduced-motion: reduce) {
+    .spinner { animation-duration: 3s; }
   }
 </style>
 </head>
@@ -346,10 +198,24 @@
 
 <script>
   const tg = window.Telegram && window.Telegram.WebApp;
+  const BG = '#1D1520';
   if (tg) {
     tg.ready();
     tg.expand();
+    try {
+      if (tg.isVersionAtLeast('8.0') && ['ios', 'android'].includes(tg.platform)) tg.requestFullscreen();
+      if (tg.isVersionAtLeast('7.7')) tg.disableVerticalSwipes();
+      tg.setHeaderColor(BG);
+      tg.setBackgroundColor(BG);
+      if (tg.setBottomBarColor) tg.setBottomBarColor(BG);
+    } catch (e) {
+      // older Telegram clients lack some of these; the app works without them
+    }
   }
+  // Telegram draws its own back button; the page shows one only in a plain browser
+  const OWN_BACK = !(tg && tg.BackButton && tg.isVersionAtLeast && tg.isVersionAtLeast('6.1'));
+  const VIDEO_LINK = /(youtube\.com|youtu\.be|tiktok\.com|instagram\.com|facebook\.com|fb\.watch|t\.me)\//i;
+  const OLD_BOT_CAT = 'Из бота';
 
   const KEY = 'recipe-book-v1';
   const DONE_KEY = 'recipe-book-done-v1';
@@ -359,7 +225,6 @@
   const BOT_USERNAME = 'recipe4katyabot'; // username бота без @; пока пусто, кнопка не показывается
   const API = 'https://recipe-book-tma.vercel.app';
   const IMPORTED_KEY = 'recipe-book-imported-v1';
-  const BOT_CAT = { name: 'Из бота', icon: '🤖' };
   const LANG_KEY = 'recipe-book-lang-v1';
   // Suggestions only: any language name typed in the field is sent to Claude
   const LANGS = ['English', 'Русский', 'עברית', 'العربية', 'Українська', 'Español', 'Français', 'Deutsch', 'Italiano',
@@ -568,6 +433,10 @@
   ];
 
   const state = {
+    importText: '',
+    importing: '', // progress text while an import runs
+    importError: '',
+    showTranslate: false,
     translation: null, // { id, lang, recipe } for the recipe on screen; kept in memory only
     translating: false,
     translateError: '',
@@ -623,25 +492,32 @@
   // Interface texts; recipe content itself is translated on demand through Claude
   const I18N = {
     ru: {
-      langName: 'Русский', appTitle: 'Книга рецептов', appSub: 'Любимые рецепты в одном месте',
+      langName: 'Русский',
+      importTitle: 'Добавить рецепт', importPh: 'Ссылка на рецепт или видео (YouTube, TikTok, Instagram) или сам текст рецепта',
+      importBtn: 'Импортировать', importing: 'Читаю рецепт…', importingVideo: 'Смотрю видео, это займёт до минуты…',
+      importFailed: 'Рецепт не нашёлся. Проверьте ссылку или вставьте текст рецепта.',
+      importYoutube: 'YouTube не открыл это видео. Скопируйте описание ролика и вставьте его сюда.',
+      importOnlyTg: 'Импорт работает, когда приложение открыто в Telegram.', importEmpty: 'Вставьте ссылку или текст рецепта.',
+      chatHint: 'Фото и видеофайлы присылайте боту в чат.', aiBadge: 'Импортировано через ИИ', estimate: 'примерно',
+      noRecipes: 'Рецептов пока нет. Вставьте ссылку выше.', addCategory: 'Категория', appTitle: 'Книга рецептов', appSub: 'Любимые рецепты в одном месте',
       search: 'Поиск по названию или ингредиенту', nothing: 'Ничего не нашлось. Попробуйте другое слово.',
       botHintTitle: 'Добавить рецепт из Telegram.',
       botHint: 'Отправьте боту ссылку на рецепт, скриншот, фото или видео, или напишите рецепт текстом. Бот пришлёт черновик, и вы подтвердите его перед сохранением.',
-      openBot: 'Открыть чат с ботом', favs: '★ Избранное', count: n => `Рецептов: ${n}`, recShort: n => `${n} рец.`,
+      openBot: 'Открыть чат с ботом', favs: 'Избранное', count: n => `Рецептов: ${n}`, recShort: n => `${n} рец.`,
       favsEmpty: 'Отметьте рецепт звёздочкой, и он появится здесь.', addRecipe: '+ Добавить новый рецепт',
       newCat: '+ Новая категория', catEmpty: 'В этой категории пока нет рецептов.', emoji: 'Эмодзи',
       newCatTitle: 'Новая категория', name: 'Название', catNamePh: 'Например, Закуски', createCat: 'Создать категорию',
-      cancel: 'Отмена', translated: lang => `🌐 Перевод: ${lang}`, showOriginal: 'Показать оригинал',
-      langPh: 'Язык, например English', langAria: 'Язык перевода', translating: 'Перевожу…', translate: '🌐 Перевести',
+      cancel: 'Отмена', translated: lang => `Перевод: ${lang}`, showOriginal: 'Показать оригинал',
+      langPh: 'Язык, например English', langAria: 'Язык перевода', translating: 'Перевожу…', translate: 'Перевести',
       ingredients: 'Ингредиенты', servLess: 'Меньше порций', servMore: 'Больше порций', cooking: 'Приготовление',
-      resetDone: 'Сбросить отметки', inFav: '★ В избранном', toFav: '☆ В избранное', edit: 'Редактировать',
+      resetDone: 'Сбросить отметки', inFav: 'В избранном', toFav: 'В избранное', edit: 'Редактировать',
       confirmDelete: 'Точно удалить?', deleteRecipe: 'Удалить рецепт', product: 'Продукт', amountPh: 'Кол-во',
       unitPh: 'Ед.', ingName: 'Название ингредиента', amount: 'Количество', unit: 'Единица измерения',
       removeRow: 'Удалить строку', editing: 'Редактирование', newRecipe: 'Новый рецепт', recipeNamePh: 'Например, Блины',
       photo: 'Фото', photoAlt: 'Фото рецепта', noPhoto: 'Фото пока не добавлено', replacePhoto: 'Заменить фото',
       addPhoto: 'Добавить фото', removePhoto: 'Убрать фото', category: 'Категория', timeMin: 'Время, мин',
       servingsLabel: 'Порций', addIngredient: '+ Добавить ингредиент', stepsPh: 'Каждый шаг — с новой строки',
-      save: 'Сохранить', back: '← Назад', noTime: 'время не указано', h: 'ч', min: 'мин',
+      save: 'Сохранить', back: 'Назад', noTime: 'время не указано', h: 'ч', min: 'мин',
       portions: n => {
         const m10 = n % 10, m100 = n % 100;
         if (m10 === 1 && m100 !== 11) return 'порция';
@@ -660,25 +536,32 @@
       cats: { 'Выпечка': 'Выпечка', 'Супы': 'Супы', 'Горячее': 'Горячее', 'Салаты': 'Салаты', 'Десерты': 'Десерты', 'Из бота': 'Из бота' }
     },
     en: {
-      langName: 'English', appTitle: 'Recipe Book', appSub: 'Favorite recipes in one place',
+      langName: 'English',
+      importTitle: 'Add a recipe', importPh: 'A recipe or video link (YouTube, TikTok, Instagram) or the recipe text',
+      importBtn: 'Import', importing: 'Reading the recipe…', importingVideo: 'Watching the video, this takes up to a minute…',
+      importFailed: 'No recipe found. Check the link or paste the recipe text.',
+      importYoutube: 'YouTube would not open this video. Copy the video description and paste it here.',
+      importOnlyTg: 'Import works when the app is opened in Telegram.', importEmpty: 'Paste a link or the recipe text.',
+      chatHint: 'Send photos and video files to the bot in the chat.', aiBadge: 'Imported with AI', estimate: 'estimated',
+      noRecipes: 'No recipes yet. Paste a link above.', addCategory: 'Category', appTitle: 'Recipe Book', appSub: 'Favorite recipes in one place',
       search: 'Search by name or ingredient', nothing: 'Nothing found. Try another word.',
       botHintTitle: 'Add a recipe from Telegram.',
       botHint: 'Send the bot a recipe link, a screenshot, a photo or a video, or type the recipe. The bot sends a draft, and you confirm it before saving.',
-      openBot: 'Open chat with the bot', favs: '★ Favorites', count: n => `Recipes: ${n}`, recShort: n => (n === 1 ? '1 recipe' : `${n} recipes`),
+      openBot: 'Open chat with the bot', favs: 'Favorites', count: n => `Recipes: ${n}`, recShort: n => (n === 1 ? '1 recipe' : `${n} recipes`),
       favsEmpty: 'Star a recipe and it will show up here.', addRecipe: '+ Add a new recipe',
       newCat: '+ New category', catEmpty: 'No recipes in this category yet.', emoji: 'Emoji',
       newCatTitle: 'New category', name: 'Name', catNamePh: 'For example, Snacks', createCat: 'Create category',
-      cancel: 'Cancel', translated: lang => `🌐 Translation: ${lang}`, showOriginal: 'Show original',
-      langPh: 'Language, for example Hebrew', langAria: 'Translation language', translating: 'Translating…', translate: '🌐 Translate',
+      cancel: 'Cancel', translated: lang => `Translation: ${lang}`, showOriginal: 'Show original',
+      langPh: 'Language, for example Hebrew', langAria: 'Translation language', translating: 'Translating…', translate: 'Translate',
       ingredients: 'Ingredients', servLess: 'Fewer servings', servMore: 'More servings', cooking: 'Directions',
-      resetDone: 'Clear checkmarks', inFav: '★ In favorites', toFav: '☆ Add to favorites', edit: 'Edit',
+      resetDone: 'Clear checkmarks', inFav: 'In favorites', toFav: 'Favorite', edit: 'Edit',
       confirmDelete: 'Delete for sure?', deleteRecipe: 'Delete recipe', product: 'Item', amountPh: 'Qty',
       unitPh: 'Unit', ingName: 'Ingredient name', amount: 'Amount', unit: 'Unit',
       removeRow: 'Remove row', editing: 'Editing', newRecipe: 'New recipe', recipeNamePh: 'For example, Pancakes',
       photo: 'Photo', photoAlt: 'Recipe photo', noPhoto: 'No photo yet', replacePhoto: 'Replace photo',
       addPhoto: 'Add photo', removePhoto: 'Remove photo', category: 'Category', timeMin: 'Time, min',
       servingsLabel: 'Servings', addIngredient: '+ Add ingredient', stepsPh: 'One step per line',
-      save: 'Save', back: '← Back', noTime: 'no time given', h: 'h', min: 'min',
+      save: 'Save', back: 'Back', noTime: 'no time given', h: 'h', min: 'min',
       portions: n => (n === 1 ? 'serving' : 'servings'),
       errTitle: 'Enter a recipe name.', errTitleLong: 'The name must be 80 characters or less.', errCat: 'Choose a category.',
       errTime: 'Enter the time as whole minutes.', errServ: 'There must be at least one serving.',
@@ -692,25 +575,32 @@
       cats: { 'Выпечка': 'Baking', 'Супы': 'Soups', 'Горячее': 'Main dishes', 'Салаты': 'Salads', 'Десерты': 'Desserts', 'Из бота': 'From the bot' }
     },
     he: {
-      langName: 'עברית', appTitle: 'ספר מתכונים', appSub: 'המתכונים האהובים במקום אחד',
+      langName: 'עברית',
+      importTitle: 'הוספת מתכון', importPh: 'קישור למתכון או לסרטון (YouTube, TikTok, Instagram) או טקסט המתכון',
+      importBtn: 'ייבוא', importing: 'קורא את המתכון…', importingVideo: 'צופה בסרטון, זה ייקח עד דקה…',
+      importFailed: 'לא נמצא מתכון. בדקו את הקישור או הדביקו את טקסט המתכון.',
+      importYoutube: 'יוטיוב לא פתח את הסרטון. העתיקו את תיאור הסרטון והדביקו אותו כאן.',
+      importOnlyTg: 'הייבוא עובד כשהאפליקציה פתוחה בטלגרם.', importEmpty: 'הדביקו קישור או טקסט של מתכון.',
+      chatHint: 'תמונות וקובצי וידאו שלחו לבוט בצ׳אט.', aiBadge: 'יובא באמצעות AI', estimate: 'משוער',
+      noRecipes: 'אין עדיין מתכונים. הדביקו קישור למעלה.', addCategory: 'קטגוריה', appTitle: 'ספר מתכונים', appSub: 'המתכונים האהובים במקום אחד',
       search: 'חיפוש לפי שם או מצרך', nothing: 'לא נמצא דבר. נסו מילה אחרת.',
       botHintTitle: 'הוספת מתכון מטלגרם.',
       botHint: 'שלחו לבוט קישור למתכון, צילום מסך, תמונה או סרטון, או כתבו את המתכון. הבוט ישלח טיוטה, ואתם תאשרו אותה לפני השמירה.',
-      openBot: 'פתיחת צ׳אט עם הבוט', favs: '★ מועדפים', count: n => `מתכונים: ${n}`, recShort: n => (n === 1 ? 'מתכון אחד' : `${n} מתכונים`),
+      openBot: 'פתיחת צ׳אט עם הבוט', favs: 'מועדפים', count: n => `מתכונים: ${n}`, recShort: n => (n === 1 ? 'מתכון אחד' : `${n} מתכונים`),
       favsEmpty: 'סמנו מתכון בכוכב והוא יופיע כאן.', addRecipe: '+ הוספת מתכון חדש',
       newCat: '+ קטגוריה חדשה', catEmpty: 'אין עדיין מתכונים בקטגוריה הזו.', emoji: 'אימוג׳י',
       newCatTitle: 'קטגוריה חדשה', name: 'שם', catNamePh: 'לדוגמה, מתאבנים', createCat: 'יצירת קטגוריה',
-      cancel: 'ביטול', translated: lang => `🌐 תרגום: ${lang}`, showOriginal: 'הצגת המקור',
-      langPh: 'שפה, לדוגמה English', langAria: 'שפת התרגום', translating: 'מתרגם…', translate: '🌐 תרגום',
+      cancel: 'ביטול', translated: lang => `תרגום: ${lang}`, showOriginal: 'הצגת המקור',
+      langPh: 'שפה, לדוגמה English', langAria: 'שפת התרגום', translating: 'מתרגם…', translate: 'תרגום',
       ingredients: 'מצרכים', servLess: 'פחות מנות', servMore: 'יותר מנות', cooking: 'אופן ההכנה',
-      resetDone: 'ניקוי הסימונים', inFav: '★ במועדפים', toFav: '☆ הוספה למועדפים', edit: 'עריכה',
+      resetDone: 'ניקוי הסימונים', inFav: 'במועדפים', toFav: 'למועדפים', edit: 'עריכה',
       confirmDelete: 'בטוח למחוק?', deleteRecipe: 'מחיקת המתכון', product: 'מצרך', amountPh: 'כמות',
       unitPh: 'יחידה', ingName: 'שם המצרך', amount: 'כמות', unit: 'יחידת מידה',
       removeRow: 'מחיקת השורה', editing: 'עריכה', newRecipe: 'מתכון חדש', recipeNamePh: 'לדוגמה, פנקייק',
       photo: 'תמונה', photoAlt: 'תמונת המתכון', noPhoto: 'עדיין אין תמונה', replacePhoto: 'החלפת תמונה',
       addPhoto: 'הוספת תמונה', removePhoto: 'הסרת התמונה', category: 'קטגוריה', timeMin: 'זמן, דקות',
       servingsLabel: 'מנות', addIngredient: '+ הוספת מצרך', stepsPh: 'כל שלב בשורה חדשה',
-      save: 'שמירה', back: '→ חזרה', noTime: 'לא צוין זמן', h: 'ש׳', min: 'דק׳',
+      save: 'שמירה', back: 'חזרה', noTime: 'לא צוין זמן', h: 'ש׳', min: 'דק׳',
       portions: n => (n === 1 ? 'מנה' : 'מנות'),
       errTitle: 'הזינו שם למתכון.', errTitleLong: 'השם יכול להכיל עד 80 תווים.', errCat: 'בחרו קטגוריה.',
       errTime: 'הזינו את הזמן בדקות שלמות.', errServ: 'צריכה להיות לפחות מנה אחת.',
@@ -757,19 +647,82 @@
 
   // Bot recipes are imported once, like seeds: a recipe deleted in the app stays deleted
   function newFromServer(server, imported) {
-    const add = server
-      .filter(s => !imported.includes(s.id))
-      .map(s => ({
-        id: s.id,
-        title: s.title,
-        photo: s.photo || '',
-        category: BOT_CAT.name,
-        time: 0,
-        baseServings: 4,
-        ingredients: (s.ingredients || []).map(name => ({ name, amount: '', unit: '' })),
-        steps: s.steps || []
-      }));
-    return { add, imported: server.map(s => s.id) };
+    return { add: server.filter(s => !imported.includes(s.id)), imported: server.map(s => s.id) };
+  }
+
+  // Matches a category by stored name or by its label in any interface language
+  function findCategory(name, cats) {
+    const key = String(name || '').trim().toLowerCase();
+    if (!key) return null;
+    return cats.find(c => c.name !== OLD_BOT_CAT && (c.name.toLowerCase() === key ||
+      Object.values(I18N).some(d => (d.cats[c.name] || '').toLowerCase() === key))) || null;
+  }
+
+  // Returns the category name to store, creating the category when the model proposed a new one
+  function resolveCategory(name, icon) {
+    const found = findCategory(name, allCategories());
+    if (found) return found.name;
+    const clean = String(name || '').trim().slice(0, 30);
+    if (!clean) return CATEGORIES[2].name;
+    const cat = { name: clean, icon: icon || '🍽️', color: PALETTE[customCats.length % PALETTE.length] };
+    customCats = [...customCats, cat];
+    writeJSON(CATS_KEY, customCats);
+    return cat.name;
+  }
+
+  // A recipe the server extracted (bot draft or Mini App import) in the shape the app stores
+  function fromServer(s) {
+    return {
+      title: String(s.title || ''),
+      photo: s.photo || '',
+      category: resolveCategory(s.category, s.categoryIcon),
+      time: Number(s.time) || 0,
+      timeEstimated: !!s.timeEstimated,
+      baseServings: Number(s.servings) || 4,
+      ingredients: (s.ingredients || []).map(i => (typeof i === 'string'
+        ? { name: i, amount: '', unit: '' }
+        : { name: String(i.name || ''), amount: String(i.amount ?? ''), unit: String(i.unit ?? '') })),
+      steps: (s.steps || []).map(String),
+      ai: true
+    };
+  }
+
+  function apiPost(path, body) {
+    return fetch(`${API}${path}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-telegram-init-data': tg.initData },
+      body: JSON.stringify(body)
+    }).then(async res => {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || String(res.status));
+      return data;
+    });
+  }
+
+  function userCategories() {
+    return allCategories().filter(c => c.name !== OLD_BOT_CAT).map(c => c.name);
+  }
+
+  // Recipes saved before auto-categories sat in one "from the bot" category; sort them once
+  async function migrateBotCategory() {
+    for (const r of recipes.filter(x => x.category === OLD_BOT_CAT)) {
+      const text = [r.title, ...r.ingredients.map(i => [i.name, i.amount, i.unit].filter(Boolean).join(' ')), ...r.steps].join('\n');
+      try {
+        const m = fromServer((await apiPost('/api/import', { input: text.slice(0, 8000), categories: userCategories() })).recipe);
+        recipes = recipes.map(x => (x.id === r.id ? {
+          ...x, category: m.category, time: x.time || m.time, timeEstimated: x.time ? !!x.timeEstimated : m.timeEstimated,
+          baseServings: m.baseServings, ingredients: m.ingredients.length ? m.ingredients : x.ingredients, ai: true
+        } : x));
+        writeJSON(KEY, recipes);
+      } catch (err) {
+        console.error('migrate failed', err.message);
+      }
+    }
+    if (!recipes.some(r => r.category === OLD_BOT_CAT) && customCats.some(c => c.name === OLD_BOT_CAT)) {
+      customCats = customCats.filter(c => c.name !== OLD_BOT_CAT);
+      writeJSON(CATS_KEY, customCats);
+    }
+    render();
   }
 
   function syncFromServer() {
@@ -778,22 +731,49 @@
       .then(res => (res.ok ? res.json() : Promise.reject(new Error(res.status))))
       .then(({ recipes: server }) => {
         const { add, imported } = newFromServer(server, readJSON(IMPORTED_KEY, []));
-        if (add.length && !customCats.some(c => c.name === BOT_CAT.name)) {
-          customCats = [...customCats, { ...BOT_CAT, color: PALETTE[customCats.length % PALETTE.length] }];
-          writeJSON(CATS_KEY, customCats);
-        }
         if (add.length) {
-          recipes = [...add, ...recipes];
+          recipes = [...add.map(s => ({ ...fromServer(s), id: s.id })), ...recipes];
           if (!writeJSON(KEY, recipes)) return;
         }
         writeJSON(IMPORTED_KEY, imported);
         if (add.length) render();
       })
-      .catch(err => console.error('sync failed', err.message));
+      .catch(err => console.error('sync failed', err.message))
+      .finally(() => {
+        if (recipes.some(r => r.category === OLD_BOT_CAT)) migrateBotCategory();
+      });
   }
 
   function allCategories() {
     return [...CATEGORIES, ...customCats];
+  }
+
+  const ICONS = {
+    back: '<path d="M15 18l-6-6 6-6"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    minus: '<path d="M5 12h14"/>',
+    star: '<path class="icon-star" d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
+    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    people: '<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8M16 5.2a3 3 0 010 5.6M18 14.5c1.4.6 2.3 2.1 2.6 4.5"/>',
+    globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5s-1.1 6.1-3.4 8.5c-2.3-2.4-3.4-5.2-3.4-8.5s1.1-6.1 3.4-8.5z"/>',
+    edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    trash: '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 12.5h9l1-12.5"/>',
+    sparkle: '<path d="M12 3.5l1.8 5.2 5.2 1.8-5.2 1.8L12 17.5l-1.8-5.2L5 10.5l5.2-1.8z"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>'
+  };
+  const icon = (name, cls = '') => `<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
+
+  function haptic(kind) {
+    try {
+      const h = tg && tg.HapticFeedback;
+      if (!h) return;
+      if (kind === 'success' || kind === 'error') h.notificationOccurred(kind);
+      else h.impactOccurred('light');
+    } catch (e) {
+      // haptics are a nicety
+    }
   }
 
   function catOf(name) {
@@ -805,6 +785,10 @@
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
     return [h ? `${h} ${t('h')}` : '', m ? `${m} ${t('min')}` : ''].filter(Boolean).join(' ');
+  }
+
+  function timeText(r) {
+    return r.time ? `${r.timeEstimated ? '≈ ' : ''}${fmtTime(r.time)}` : t('noTime');
   }
 
   function portions(n) {
@@ -900,39 +884,80 @@
     render();
   }
 
-  function recipeItem(r) {
+  function tile(r) {
+    const cat = catOf(r.category);
     return `
-      <button class="recipe-item" data-action="open-recipe" data-id="${esc(r.id)}">
-        ${r.photo ? `<img class="ri-photo" src="${esc(r.photo)}" alt="">` : ''}
-        <span class="ri-text">
-          <span class="ri-title">${esc(r.title)}</span>
-          <span class="ri-meta">${esc(catLabel(r.category))} · ${esc(fmtTime(r.time))}</span>
+      <button class="tile" data-action="open-recipe" data-id="${esc(r.id)}" style="--c:${cat.color}">
+        ${r.photo ? `<img src="${esc(r.photo)}" alt="" loading="lazy">` : `<span class="no-photo" aria-hidden="true">${cat.icon}</span>`}
+        <span class="shade"></span>
+        ${r.favorite ? `<span class="t-star">${icon('star')}</span>` : ''}
+        <span class="t-text">
+          <span class="t-title" dir="auto">${esc(r.title)}</span>
+          ${r.time ? `<span class="t-meta">${icon('clock')}${esc(timeText(r))}</span>` : ''}
         </span>
       </button>`;
   }
 
-  function recipeList(items) {
-    return `<div class="recipe-list">${items.map(recipeItem).join('')}</div>`;
+  function grid(items, emptyText) {
+    return items.length ? `<div class="grid">${items.map(tile).join('')}</div>` : `<p class="empty">${emptyText}</p>`;
   }
 
   function resultsHtml() {
     const q = state.query.trim().toLowerCase();
-    if (!q) {
-      const cards = allCategories().map(c => `
-        <button class="cat-card" style="background:${c.color}" data-action="open-cat" data-cat="${esc(c.name)}">
-          <span class="cat-icon">${c.icon}</span>
-          <span class="cat-name">${esc(catLabel(c.name))}</span>
-          <span class="cat-count">${t('recShort')(recipes.filter(r => r.category === c.name).length)}</span>
-        </button>`).join('');
-      return `<div class="cat-grid">${cards}</div>`;
-    }
-    const found = recipes.filter(r =>
-      r.title.toLowerCase().includes(q) ||
-      r.ingredients.some(i => i.name.toLowerCase().includes(q))
-    );
-    return found.length
-      ? recipeList(found)
-      : `<p class="empty">${t('nothing')}</p>`;
+    const found = q
+      ? recipes.filter(r => r.title.toLowerCase().includes(q) || r.ingredients.some(i => i.name.toLowerCase().includes(q)))
+      : recipes;
+    return grid(found, q ? t('nothing') : t('noRecipes'));
+  }
+
+  const fab = () => `<button class="fab" data-action="new" aria-label="${t('newRecipe')}">${icon('plus')}</button>`;
+
+  function langSwitch() {
+    return `<div class="langs" role="group">${Object.keys(I18N).map(code =>
+      `<button class="lang${code === uiLang ? ' on' : ''}" data-action="ui-lang" data-lang="${code}" lang="${code}" aria-pressed="${code === uiLang}">${code.toUpperCase()}</button>`).join('')}</div>`;
+  }
+
+  function importBox() {
+    const busy = state.importing;
+    return `
+      <section class="import">
+        <h2>${t('importTitle')}</h2>
+        <textarea id="import-text" rows="3" placeholder="${t('importPh')}" aria-label="${t('importTitle')}"${busy ? ' disabled' : ''}>${esc(state.importText)}</textarea>
+        ${busy ? `<div class="progress" role="status"><span class="spinner"></span>${esc(busy)}</div>` : ''}
+        ${state.importError ? `<p class="error" role="alert">${esc(state.importError)}</p>` : ''}
+        <div class="import-row">
+          <p class="hint">${t('chatHint')} ${BOT_USERNAME ? `<button class="link-btn" data-action="open-bot">${t('openBot')}</button>` : ''}</p>
+          <button class="btn btn-primary" data-action="import"${busy ? ' disabled' : ''}>${t('importBtn')}</button>
+        </div>
+      </section>`;
+  }
+
+  function renderHome() {
+    const favCount = recipes.filter(r => r.favorite).length;
+    const chips = allCategories().map(c => `
+      <button class="chip" data-action="open-cat" data-cat="${esc(c.name)}">
+        <span aria-hidden="true">${c.icon}</span>${esc(catLabel(c.name))}
+        <span class="count">${recipes.filter(r => r.category === c.name).length}</span>
+      </button>`).join('');
+    return `
+      <div class="home-head">
+        <div>
+          <h1>${t('appTitle')}</h1>
+          <p class="sub">${t('count')(recipes.length)}</p>
+        </div>
+        ${langSwitch()}
+      </div>
+      ${importBox()}
+      <label class="search">${icon('search')}
+        <input id="search" type="search" placeholder="${t('search')}" aria-label="${t('search')}" autocomplete="off" value="${esc(state.query)}">
+      </label>
+      <div class="chips">
+        ${favCount ? `<button class="chip" data-action="open-favs">${icon('star')}${t('favs')}<span class="count">${favCount}</span></button>` : ''}
+        ${chips}
+        <button class="chip add" data-action="new-cat">${icon('plus')}${t('addCategory')}</button>
+      </div>
+      <div id="results">${resultsHtml()}</div>
+      ${fab()}`;
   }
 
   function renderFavs() {
@@ -942,30 +967,7 @@
         <h1>${t('favs')}</h1>
         <p class="sub">${t('count')(items.length)}</p>
       </header>
-      ${items.length ? recipeList(items) : `<p class="empty">${t('favsEmpty')}</p>`}`;
-  }
-
-  function renderHome() {
-    const favCount = recipes.filter(r => r.favorite).length;
-    return `
-      <header class="head">
-        <h1>${t('appTitle')}</h1>
-        <p class="sub">${t('appSub')}</p>
-      </header>
-      <div class="ui-langs">${Object.keys(I18N).map(code =>
-        `<button class="ui-lang${code === uiLang ? ' on' : ''}" data-action="ui-lang" data-lang="${code}" lang="${code}">${I18N[code].langName}</button>`).join('')}</div>
-      <input id="search" class="search" type="search" placeholder="${t('search')}"
-             autocomplete="off" value="${esc(state.query)}">
-      <div id="results">${resultsHtml()}</div>
-      <div class="bot-hint">
-        <b>${t('botHintTitle')}</b> ${t('botHint')}
-        ${BOT_USERNAME ? `<button class="btn btn-soft" data-action="open-bot">${t('openBot')}</button>` : ''}
-      </div>
-      <div class="actions">
-        ${favCount ?`<button class="btn btn-soft" data-action="open-favs">${t('favs')} (${favCount})</button>` : ''}
-        <button class="btn btn-primary" data-action="new">${t('addRecipe')}</button>
-        <button class="btn btn-soft" data-action="new-cat">${t('newCat')}</button>
-      </div>`;
+      ${grid(items, t('favsEmpty'))}`;
   }
 
   function renderCategory() {
@@ -973,19 +975,17 @@
     const items = recipes.filter(r => r.category === state.category);
     return `
       <header class="head">
-        <h1>${cat.icon} ${esc(catLabel(cat.name))}</h1>
+        <h1><span aria-hidden="true">${cat.icon}</span> ${esc(catLabel(cat.name))}</h1>
         <p class="sub">${t('count')(items.length)}</p>
       </header>
-      ${items.length ? recipeList(items) : `<p class="empty">${t('catEmpty')}</p>`}
-      <div class="actions">
-        <button class="btn btn-primary" data-action="new">${t('addRecipe')}</button>
-      </div>`;
+      ${grid(items, t('catEmpty'))}
+      ${fab()}`;
   }
 
   function renderCatForm() {
     const d = state.catDraft;
     const icons = CAT_ICONS.map(e =>
-      `<button type="button" class="emoji${e === d.icon ? ' on' : ''}" data-action="pick-icon" data-icon="${e}" aria-label="${t('emoji')} ${e}">${e}</button>`
+      `<button type="button" class="emoji${e === d.icon ? ' on' : ''}" data-action="pick-icon" data-icon="${e}" aria-label="${t('emoji')} ${e}" aria-pressed="${e === d.icon}">${e}</button>`
     ).join('');
     return `
       <header class="head">
@@ -1016,58 +1016,75 @@
     const cat = catOf(r.category);
     const tr = state.translation && state.translation.id === r.id ? state.translation : null;
     const shown = tr ? { ...r, ...tr.recipe } : r;
-    const translateBox = tr
-      ? `<p class="sub">${esc(t('translated')(tr.lang))}</p>
-         <button class="btn btn-ghost" data-action="show-original">${t('showOriginal')}</button>`
-      : `<input id="t-lang" list="t-langs" value="${esc(readJSON(LANG_KEY, 'English'))}" placeholder="${t('langPh')}" aria-label="${t('langAria')}">
-         <datalist id="t-langs">${LANGS.map(l => `<option value="${esc(l)}">`).join('')}</datalist>
-         <button class="btn btn-soft" data-action="translate"${state.translating ? ' disabled' : ''}>${state.translating ? t('translating') : t('translate')}</button>`;
-    return `
-      ${r.photo ? `<img class="recipe-photo" src="${esc(r.photo)}" alt="${esc(shown.title)}">` : ''}
-      <span class="tag" style="background:${cat.color}">${cat.icon} ${esc(catLabel(r.category))}</span>
-      <h1 class="recipe-title" dir="auto">${esc(shown.title)}</h1>
-      <p class="meta">⏱ ${esc(fmtTime(r.time))}</p>
-
+    const translatePanel = !tr && state.showTranslate ? `
       <div class="translate">
-        ${translateBox}
-        ${state.translateError ? `<p class="error">${esc(state.translateError)}</p>` : ''}
+        <input id="t-lang" list="t-langs" value="${esc(readJSON(LANG_KEY, 'English'))}" placeholder="${t('langPh')}" aria-label="${t('langAria')}">
+        <datalist id="t-langs">${LANGS.map(l => `<option value="${esc(l)}">`).join('')}</datalist>
+        <button class="btn btn-primary" data-action="translate"${state.translating ? ' disabled' : ''}>${state.translating ? t('translating') : t('translate')}</button>
+      </div>` : '';
+    return `
+      <div class="hero" style="--c:${cat.color}">
+        ${r.photo ? `<img src="${esc(r.photo)}" alt="">` : `<span class="no-photo" aria-hidden="true">${cat.icon}</span>`}
+        <span class="shade"></span>
+        ${OWN_BACK ? `<button class="back" data-action="back">${icon('back', 'flip')}${t('back')}</button>` : ''}
+        <div class="hero-text">
+          <div class="tags">
+            <span class="tag"><span aria-hidden="true">${cat.icon}</span>${esc(catLabel(r.category))}</span>
+            ${r.ai ? `<span class="tag ai">${icon('sparkle')}${t('aiBadge')}</span>` : ''}
+          </div>
+          <h1 class="recipe-title" dir="auto">${esc(shown.title)}</h1>
+        </div>
       </div>
 
-      <section class="card">
-        <h2>${t('ingredients')}</h2>
-        <div class="servings">
-          <button class="btn btn-soft btn-round" data-action="serv-dec" aria-label="${t('servLess')}">−</button>
-          <span class="serv-val">${state.servings} ${portions(state.servings)}</span>
-          <button class="btn btn-soft btn-round" data-action="serv-inc" aria-label="${t('servMore')}">+</button>
+      <div class="facts">
+        <span class="fact">${icon('clock')}${esc(timeText(r))}${r.timeEstimated ? ` (${t('estimate')})` : ''}</span>
+        <span class="fact">${icon('people')}${r.baseServings} ${portions(r.baseServings)}</span>
+      </div>
+
+      <div class="tools">
+        <button class="tool${r.favorite ? ' on' : ''}" data-action="toggle-fav" aria-pressed="${!!r.favorite}">${icon('star')}${r.favorite ? t('inFav') : t('toFav')}</button>
+        <button class="tool${tr || state.showTranslate ? ' on' : ''}" data-action="${tr ? 'show-original' : 'toggle-translate'}">${icon('globe')}${tr ? t('showOriginal') : t('translate')}</button>
+        <button class="tool" data-action="edit">${icon('edit')}${t('edit')}</button>
+      </div>
+      ${translatePanel}
+      ${tr ? `<p class="sub" style="margin:-14px 0 24px">${esc(t('translated')(tr.lang))}</p>` : ''}
+      ${state.translateError ? `<p class="error" style="margin:-14px 0 24px">${esc(state.translateError)}</p>` : ''}
+
+      <section class="section">
+        <div class="section-head">
+          <h2>${t('ingredients')}</h2>
+          <div class="servings">
+            <button class="btn btn-round" data-action="serv-dec" aria-label="${t('servLess')}">${icon('minus')}</button>
+            <span class="serv-val">${state.servings} ${portions(state.servings)}</span>
+            <button class="btn btn-round" data-action="serv-inc" aria-label="${t('servMore')}">${icon('plus')}</button>
+          </div>
         </div>
         <ul class="ingr">
           ${shown.ingredients.map(i => `
             <li>
               <span dir="auto">${esc(i.name)}</span>
-              <b>${esc(scale(i.amount, factor))} ${esc(i.unit)}</b>
+              ${i.amount || i.unit ? `<b>${esc(scale(i.amount, factor))} ${esc(i.unit)}</b>` : ''}
             </li>`).join('')}
         </ul>
       </section>
 
-      <section>
+      <section class="section">
         <h2>${t('cooking')}</h2>
         <ol class="steps">
           ${shown.steps.map((s, i) => {
             const isDone = doneList.includes(i);
             return `
-            <li class="step${isDone ? ' done' : ''}" data-action="toggle-step" data-index="${i}">
-              <span class="check">${isDone ? '✓' : ''}</span>
-              <span dir="auto">${esc(s)}</span>
+            <li class="step${isDone ? ' done' : ''}" data-action="toggle-step" data-index="${i}" role="button" tabindex="0" aria-pressed="${isDone}">
+              <span class="step-num">${isDone ? icon('check') : i + 1}</span>
+              <span class="step-text" dir="auto">${esc(s)}</span>
             </li>`;
           }).join('')}
         </ol>
       </section>
 
-      <div class="actions">
-        ${doneList.length ? `<button class="btn btn-ghost" data-action="reset-done">${t('resetDone')}</button>` : ''}
-        <button class="btn btn-soft" data-action="toggle-fav">${r.favorite ? t('inFav') : t('toFav')}</button>
-        <button class="btn btn-soft" data-action="edit">${t('edit')}</button>
-        <button class="btn btn-danger" data-action="delete">${state.confirmDelete ? t('confirmDelete') : t('deleteRecipe')}</button>
+      <div class="end-actions">
+        ${doneList.length ? `<button class="btn btn-ghost" data-action="reset-done">${t('resetDone')}</button>` : '<span></span>'}
+        <button class="btn btn-danger" data-action="delete">${icon('trash')}${state.confirmDelete ? t('confirmDelete') : t('deleteRecipe')}</button>
       </div>`;
   }
 
@@ -1081,7 +1098,7 @@
         <input data-f="name" placeholder="${t('product')}" value="${esc(i.name)}" aria-label="${t('ingName')}">
         <input data-f="amount" placeholder="${t('amountPh')}" inputmode="decimal" value="${esc(i.amount)}" aria-label="${t('amount')}">
         <input data-f="unit" placeholder="${t('unitPh')}" value="${esc(i.unit)}" aria-label="${t('unit')}">
-        <button class="btn-remove" data-action="remove-row" data-index="${idx}" aria-label="${t('removeRow')}">×</button>
+        <button class="btn-remove" data-action="remove-row" data-index="${idx}" aria-label="${t('removeRow')}">${icon('close')}</button>
       </div>`).join('');
     return `
       <header class="head">
@@ -1128,7 +1145,9 @@
   function render() {
     const views = { home: renderHome, favs: renderFavs, category: renderCategory, recipe: renderRecipe, form: renderForm, 'cat-form': renderCatForm };
     const body = views[state.view]();
-    const back = state.view === 'home' ? '' : `<div class="top"><button class="back" data-action="back">${t('back')}</button></div>`;
+    const hero = state.view === 'recipe';
+    const back = state.view === 'home' || hero || !OWN_BACK ? '' : `<div class="top"><button class="back" data-action="back">${icon('back', 'flip')}${t('back')}</button></div>`;
+    app.classList.toggle('hero-view', hero);
     app.innerHTML = back + body;
 
     if (state.view !== lastView) {
@@ -1195,7 +1214,13 @@
     const parsed = parseRecipe(readForm());
     if (parsed.error) return fail(parsed.error);
     const old = recipes.find(r => r.id === state.editingId) || {};
-    const recipe = { ...parsed.recipe, id: state.editingId || uid(), favorite: !!old.favorite };
+    const recipe = {
+      ...parsed.recipe,
+      id: state.editingId || uid(),
+      favorite: !!old.favorite,
+      ai: !!old.ai,
+      timeEstimated: !!old.timeEstimated && parsed.recipe.time === old.time
+    };
 
     const next = state.editingId
       ? recipes.map(r => (r.id === recipe.id ? recipe : r))
@@ -1229,7 +1254,7 @@
 
       case 'open-recipe': {
         const r = recipes.find(x => x.id === el.dataset.id);
-        if (r) go('recipe', { recipeId: r.id, servings: r.baseServings });
+        if (r) go('recipe', { recipeId: r.id, servings: r.baseServings, showTranslate: false });
         break;
       }
 
@@ -1289,6 +1314,48 @@
         break;
       }
 
+      case 'import': {
+        const input = document.getElementById('import-text').value.trim();
+        state.importText = input;
+        if (state.importing) break;
+        if (!input) {
+          state.importError = t('importEmpty');
+          render();
+          break;
+        }
+        if (!tg || !tg.initData) {
+          state.importError = t('importOnlyTg');
+          render();
+          break;
+        }
+        Object.assign(state, { importing: VIDEO_LINK.test(input) ? t('importingVideo') : t('importing'), importError: '' });
+        render();
+        apiPost('/api/import', { input, categories: userCategories() })
+          .then(({ recipe: server }) => {
+            const recipe = { ...fromServer(server), id: uid() };
+            const next = [recipe, ...recipes];
+            if (!writeJSON(KEY, next)) throw new Error('storage');
+            recipes = next;
+            state.importText = '';
+            state.importing = '';
+            haptic('success');
+            go('recipe', { recipeId: recipe.id, servings: recipe.baseServings });
+          })
+          .catch(err => {
+            state.importing = '';
+            state.importError = err.message === 'youtube' ? t('importYoutube') : err.message === 'storage' ? t('errStorage') : t('importFailed');
+            haptic('error');
+            render();
+          });
+        break;
+      }
+
+      case 'toggle-translate':
+        state.showTranslate = !state.showTranslate;
+        state.translateError = '';
+        render();
+        break;
+
       case 'ui-lang':
         uiLang = el.dataset.lang;
         writeJSON(UI_LANG_KEY, uiLang);
@@ -1336,6 +1403,7 @@
         const idx = Number(el.dataset.index);
         const list = done[state.recipeId] || [];
         done[state.recipeId] = list.includes(idx) ? list.filter(i => i !== idx) : [...list, idx];
+        haptic('tap');
         writeJSON(DONE_KEY, done);
         render();
         break;
@@ -1411,6 +1479,7 @@
   });
 
   app.addEventListener('input', e => {
+    if (e.target.id === 'import-text') state.importText = e.target.value;
     if (e.target.id !== 'search') return;
     state.query = e.target.value;
     document.getElementById('results').innerHTML = resultsHtml();
@@ -1427,6 +1496,13 @@
         render();
       })
       .catch(() => fail(t('errPhotoFile')));
+  });
+
+  app.addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('step')) {
+      e.preventDefault();
+      e.target.click();
+    }
   });
 
   if (tg && tg.BackButton) tg.BackButton.onClick(goBack);

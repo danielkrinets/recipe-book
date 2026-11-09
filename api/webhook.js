@@ -2,10 +2,11 @@ const crypto = require('node:crypto');
 const { extractDraft } = require('../lib/extract');
 const telegram = require('../lib/telegram');
 const store = require('../lib/store');
-const { validUrl } = require('../lib/url');
 const { readVideo } = require('../lib/video');
 const { isVideoLink, downloadVideo } = require('../lib/download');
-const { youtubeId, youtubeInfo } = require('../lib/youtube');
+const { youtubeInfo, youtubeThumbnail } = require('../lib/youtube');
+const { youtubeDraft } = require('../lib/gemini');
+const { draftFromVideo, draftFromInput, LINK } = require('../lib/draft');
 const { waitUntil } = require('@vercel/functions');
 
 // Bot replies in the user's Telegram language; unknown languages get English
@@ -19,6 +20,7 @@ const TEXTS = {
     watching: 'Смотрю видео, это займёт до минуты…',
     reading: 'Читаю рецепт…',
     ingredients: 'Ингредиенты:',
+    min: 'мин',
     steps: 'Шаги:',
     save: 'Сохранить',
     saved: 'Сохранено',
@@ -33,6 +35,7 @@ const TEXTS = {
     watching: 'Watching the video, this takes up to a minute…',
     reading: 'Reading the recipe…',
     ingredients: 'Ingredients:',
+    min: 'min',
     steps: 'Steps:',
     save: 'Save',
     saved: 'Saved',
@@ -47,6 +50,7 @@ const TEXTS = {
     watching: 'צופה בסרטון, זה ייקח עד דקה…',
     reading: 'קורא את המתכון…',
     ingredients: 'מצרכים:',
+    min: 'דק׳',
     steps: 'אופן ההכנה:',
     save: 'שמירה',
     saved: 'נשמר',
@@ -54,7 +58,6 @@ const TEXTS = {
   },
 };
 const textsFor = (from) => TEXTS[((from && from.language_code) || '').slice(0, 2)] || TEXTS.en;
-const MAX_TEXT = 8000;
 // base64 adds a third to the size and the API caps images at 5 MB
 const MAX_PHOTO_BYTES = 3.5 * 1024 * 1024;
 // Telegram lets bots download files up to 20 MB
@@ -79,40 +82,23 @@ function sameSecret(header, secret) {
 }
 
 function formatDraft(draft, t) {
+  const meta = [draft.category, draft.time ? `${draft.timeEstimated ? '≈ ' : ''}${draft.time} ${t.min}` : ''].filter(Boolean).join(' · ');
   const text = [
     draft.title,
+    meta,
     '',
     t.ingredients,
-    ...draft.ingredients.map((item) => `• ${item}`),
+    ...draft.ingredients.map((i) => `• ${i.name}${i.amount || i.unit ? ` — ${[i.amount, i.unit].filter(Boolean).join(' ')}` : ''}`),
     '',
     t.steps,
     ...draft.steps.map((step, i) => `${i + 1}. ${step}`),
-  ].join('\n');
+  ].filter((line, i) => i !== 1 || line).join('\n');
   return text.slice(0, 4000); // Telegram caps one message at 4096 characters
-}
-
-async function draftFromVideo(bytes, caption, { extract, video: readFrames }) {
-  const { frames, transcript } = await readFrames(bytes);
-  if (!frames.length) throw new Error('no frames');
-  console.log(`video read: ${bytes.length} bytes, ${frames.length} frames, transcript ${transcript.length} chars, caption ${caption.length} chars`);
-  const draft = await extract({
-    images: frames.map((f) => ({ base64: f.toString('base64'), mediaType: 'image/jpeg' })),
-    text: [caption && `Caption: ${caption}`, transcript && `Speech transcript: ${transcript}`]
-      .filter(Boolean).join('\n\n') || 'The video has no caption and no speech.',
-  });
-  // shortcut: a frame near the end usually shows the finished dish; let the user pick one if it is often wrong
-  return { draft, photo: { bytes: frames[Math.floor(frames.length * 0.8)], mediaType: 'image/jpeg' } };
-}
-
-// Title and description stand in for the video; the thumbnail only becomes the photo (a picture next to the text made the model skip the recipe)
-async function draftFromYoutube({ title, description, thumbnail }, extract) {
-  const draft = await extract({ text: `Video title: ${title}\n\nVideo description: ${description || '(none)'}` });
-  return { draft, photo: thumbnail ? { bytes: thumbnail, mediaType: 'image/jpeg' } : null };
 }
 
 // Returns the extracted draft and, for a photo or video, the bytes to keep as the recipe photo
 async function makeDraft(message, deps) {
-  const { extract, download, youtube, tg, token } = deps;
+  const { extract, tg, token } = deps;
   const text = (message.text || '').trim();
   const video = videoOf(message);
   if (video) {
@@ -128,28 +114,7 @@ async function makeDraft(message, deps) {
     const draft = await extract({ imageBase64: bytes.toString('base64'), mediaType });
     return { draft, photo: { bytes, mediaType } };
   }
-  if (/^https?:\/\/\S+$/i.test(text)) {
-    if (!validUrl(text)) throw new Error('blocked url');
-    if (isVideoLink(text)) {
-      try {
-        const { bytes, caption } = await download(text);
-        return await draftFromVideo(bytes, caption, deps);
-      } catch (err) {
-        console.error('video link failed, reading the page instead', err.message);
-      }
-    }
-    const ytId = youtubeId(text);
-    if (ytId) {
-      const info = await youtube(ytId).catch((err) => {
-        console.error('youtube blocked', err.message);
-        throw Object.assign(new Error('youtube blocked'), { youtube: true });
-      });
-      return draftFromYoutube(info, extract);
-    }
-    return { draft: await extract({ url: text }), photo: null };
-  }
-  if (text.length > MAX_TEXT) throw new Error('text too long');
-  return { draft: await extract({ text }), photo: null };
+  return draftFromInput(text, deps);
 }
 
 async function handleMessage(message, deps) {
@@ -164,7 +129,7 @@ async function handleMessage(message, deps) {
   if (!message.photo && !video && !text) return;
   if (video && (video.file_size || 0) > MAX_VIDEO_BYTES) return say(t.tooLarge);
 
-  await say(video || isVideoLink(text) ? t.watching : t.reading);
+  await say(video || (LINK.test(text) && isVideoLink(text)) ? t.watching : t.reading);
   let made;
   try {
     made = await makeDraft(message, deps);
@@ -201,6 +166,8 @@ function createHandler({
   video = (bytes) => readVideo(bytes, process.env.GROQ_API_KEY),
   download = downloadVideo,
   youtube = youtubeInfo,
+  thumbnail = youtubeThumbnail,
+  gemini = process.env.GEMINI_API_KEY ? (url, categories) => youtubeDraft(url, categories, process.env.GEMINI_API_KEY) : null,
   tg = telegram,
   store: storage = store,
   defer = waitUntil,
@@ -212,7 +179,7 @@ function createHandler({
     }
 
     const body = req.body || {};
-    const deps = { extract, video, download, youtube, tg, store: storage, token: process.env.TELEGRAM_BOT_TOKEN };
+    const deps = { extract, video, download, youtube, gemini, thumbnail, tg, store: storage, token: process.env.TELEGRAM_BOT_TOKEN };
     const work = (async () => {
       if (body.callback_query) await handleCallback(body.callback_query, deps);
       else if (body.message && body.message.chat) await handleMessage(body.message, deps);

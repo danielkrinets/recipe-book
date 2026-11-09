@@ -29,7 +29,7 @@ function load(storage = {}) {
     console
   };
   // Expose internals: top-level const/let are not visible from outside the script
-  const exposed = 'globalThis.__app = { parseRecipe, parseCategory, missingSeeds, newFromServer, pickUiLang, I18N, loadRecipes, SEED, CATEGORIES, PALETTE, CATS_KEY, KEY, OFFERED_KEY };';
+  const exposed = 'globalThis.__app = { parseRecipe, parseCategory, missingSeeds, newFromServer, fromServer, resolveCategory, pickUiLang, I18N, loadRecipes, SEED, CATEGORIES, PALETTE, CATS_KEY, KEY, OFFERED_KEY };';
   vm.createContext(sandbox);
   vm.runInContext(script + '\n' + exposed, sandbox);
   return { app: sandbox.__app, store };
@@ -158,16 +158,36 @@ test('SEED recipes are valid: unique titles, known categories, ingredients and s
   }
 });
 
-test('newFromServer: bot recipes are imported once and keep their photo', () => {
+test('newFromServer: bot recipes are imported once', () => {
   const { app } = load();
-  const server = [{ id: 'a', title: 'Суп', ingredients: ['вода 1 л'], steps: ['варить'], photo: 'https://blob.test/p.jpg' }];
+  const server = [{ id: 'a', title: 'Суп' }];
   const first = plain(app.newFromServer(server, []));
-  assert.equal(first.add.length, 1);
-  assert.deepEqual(first.add[0].ingredients, [{ name: 'вода 1 л', amount: '', unit: '' }]);
-  assert.equal(first.add[0].category, 'Из бота');
-  assert.equal(first.add[0].photo, 'https://blob.test/p.jpg');
+  assert.deepEqual(first.add.map(r => r.id), ['a']);
   assert.deepEqual(first.imported, ['a']);
   assert.equal(app.newFromServer(server, ['a']).add.length, 0);
+});
+
+test('fromServer: AI recipes keep photo and time, old string ingredients still work', () => {
+  const { app } = load();
+  const r = plain(app.fromServer({ title: 'Суп', category: 'Супы', time: 40, timeEstimated: true, servings: 2,
+    ingredients: ['вода 1 л', { name: 'соль', amount: 1, unit: 'ч. л.' }], steps: ['варить'], photo: 'https://blob.test/p.jpg' }));
+  assert.equal(r.category, 'Супы');
+  assert.equal(r.ai, true);
+  assert.equal(r.time, 40);
+  assert.equal(r.timeEstimated, true);
+  assert.equal(r.baseServings, 2);
+  assert.equal(r.photo, 'https://blob.test/p.jpg');
+  assert.deepEqual(r.ingredients, [{ name: 'вода 1 л', amount: '', unit: '' }, { name: 'соль', amount: '1', unit: 'ч. л.' }]);
+});
+
+test('resolveCategory reuses categories by name or translated label and creates new ones', () => {
+  const { app, store } = load();
+  assert.equal(app.resolveCategory('супы'), 'Супы');
+  assert.equal(app.resolveCategory('Desserts'), 'Десерты');
+  assert.equal(app.resolveCategory('מרקים'), 'Супы');
+  assert.equal(app.resolveCategory('Завтраки', '🍳'), 'Завтраки');
+  assert.deepEqual(JSON.parse(store.get(app.CATS_KEY)).map(c => [c.name, c.icon]), [['Завтраки', '🍳']]);
+  assert.equal(app.resolveCategory('завтраки', '🥞'), 'Завтраки');
 });
 
 test('pickUiLang: saved choice, then Telegram language, English for unknown, Russian with no hint', () => {

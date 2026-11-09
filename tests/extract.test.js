@@ -35,7 +35,10 @@ test('fetchPageText strips scripts, styles and tags', async () => {
 
 test('parseDraft reads JSON wrapped in prose or fences', () => {
   const reply = 'Here it is:\n```json\n{"title":"Soup","ingredients":["water"],"steps":["boil"]}\n```';
-  assert.deepEqual(parseDraft(reply), { title: 'Soup', ingredients: ['water'], steps: ['boil'] });
+  const draft = parseDraft(reply);
+  assert.equal(draft.title, 'Soup');
+  assert.deepEqual(draft.ingredients, [{ name: 'water', amount: '', unit: '' }]);
+  assert.deepEqual(draft.steps, ['boil']);
 });
 
 test('parseDraft rejects replies without a valid draft', () => {
@@ -74,4 +77,30 @@ test('video frames go to the image model with the caption and speech text', () =
   const content = buildContent(input);
   assert.deepEqual(content.map((c) => c.type), ['image', 'image', 'text']);
   assert.match(content[2].text, /Speech transcript: жарим/);
+});
+
+test('parseDraft fills category, time and servings and keeps structured ingredients', () => {
+  const reply = JSON.stringify({
+    title: ' Pizza ', category: 'Выпечка', categoryIcon: '', time: '45', timeEstimated: false, servings: 2,
+    ingredients: [{ name: 'flour', amount: 300, unit: 'g' }, { name: '' }], steps: ['knead', ' '],
+  });
+  assert.deepEqual(parseDraft(reply), {
+    title: 'Pizza', category: 'Выпечка', categoryIcon: '', time: 45, timeEstimated: false, servings: 2,
+    ingredients: [{ name: 'flour', amount: '300', unit: 'g' }], steps: ['knead'],
+  });
+});
+
+test('parseDraft: missing time and servings get safe defaults; estimated time is flagged', () => {
+  const none = parseDraft('{"title":"x","ingredients":[],"steps":[]}');
+  assert.equal(none.time, 0);
+  assert.equal(none.timeEstimated, false);
+  assert.equal(none.servings, 4);
+  assert.equal(parseDraft('{"title":"x","time":30,"ingredients":[],"steps":[]}').timeEstimated, true);
+});
+
+test('the prompt offers the user categories, quoted, and falls back to the built-in ones', () => {
+  const { recipePrompt } = require('../lib/extract');
+  assert.match(recipePrompt(['Завтраки', 'Супы']), /"Завтраки", "Супы"/);
+  assert.match(recipePrompt(), /"Выпечка", "Супы", "Горячее", "Салаты", "Десерты"/);
+  assert.match(recipePrompt(['x"y']), /"x\\"y"/);
 });

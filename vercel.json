@@ -2,6 +2,9 @@
   "functions": {
     "api/webhook.js": {
       "includeFiles": "{node_modules/ffmpeg-static/ffmpeg,bin/yt-dlp}"
+    },
+    "api/import.js": {
+      "includeFiles": "{node_modules/ffmpeg-static/ffmpeg,bin/yt-dlp}"
     }
   }
 }
