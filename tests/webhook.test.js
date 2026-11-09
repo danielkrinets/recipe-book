@@ -267,3 +267,11 @@ test('a YouTube link that cannot be downloaded uses the title and description as
   assert.equal(store.calls[0].method, 'savePhoto');
   assert.match(tg.calls.at(-1).text, /Блины/);
 });
+
+test('when YouTube refuses the link, the bot says what to send instead', async () => {
+  const tg = fakeTelegram();
+  const download = async () => { throw new Error('bot check'); };
+  const youtube = async () => { throw new Error('no description'); };
+  await call({ body: update({ text: 'https://youtu.be/abcdefghijk' }), extract: async () => DRAFT, download, youtube, tg });
+  assert.match(tg.calls.at(-1).text, /YouTube не отдаёт/);
+});

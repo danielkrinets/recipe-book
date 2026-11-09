@@ -13,6 +13,7 @@ const TEXTS = {
   ru: {
     hello: 'Привет! Пришлите ссылку на рецепт, текст рецепта, фото или видео. Я подготовлю черновик, а сохранить его решите вы.',
     failed: 'Не удалось разобрать рецепт, попробуйте другой текст или фото',
+    youtube: 'YouTube не отдаёт мне это видео. Скопируйте описание ролика и пришлите текстом или пришлите само видео файлом.',
     storeFailed: 'Не удалось сохранить черновик, попробуйте ещё раз',
     tooLarge: 'Видео больше 20 МБ, бот такое скачать не может. Пришлите видео покороче.',
     watching: 'Смотрю видео, это займёт до минуты…',
@@ -26,6 +27,7 @@ const TEXTS = {
   en: {
     hello: 'Hi! Send a recipe link, the recipe text, a photo or a video. I will prepare a draft, and you decide whether to save it.',
     failed: 'Could not read the recipe, try another text or photo',
+    youtube: 'YouTube does not let me open this video. Copy the video description and send it as text, or send the video file itself.',
     storeFailed: 'Could not save the draft, please try again',
     tooLarge: 'The video is over 20 MB, the bot cannot download it. Send a shorter video.',
     watching: 'Watching the video, this takes up to a minute…',
@@ -39,6 +41,7 @@ const TEXTS = {
   he: {
     hello: 'שלום! שלחו קישור למתכון, טקסט של מתכון, תמונה או סרטון. אכין טיוטה, ואתם תחליטו אם לשמור אותה.',
     failed: 'לא הצלחתי לקרוא את המתכון, נסו טקסט או תמונה אחרים',
+    youtube: 'יוטיוב לא מאפשר לי לפתוח את הסרטון. העתיקו את תיאור הסרטון ושלחו כטקסט, או שלחו את קובץ הסרטון עצמו.',
     storeFailed: 'לא הצלחתי לשמור את הטיוטה, נסו שוב',
     tooLarge: 'הסרטון גדול מ-20 MB, הבוט לא יכול להוריד אותו. שלחו סרטון קצר יותר.',
     watching: 'צופה בסרטון, זה ייקח עד דקה…',
@@ -136,7 +139,13 @@ async function makeDraft(message, deps) {
       }
     }
     const ytId = youtubeId(text);
-    if (ytId) return draftFromYoutube(await youtube(ytId), extract);
+    if (ytId) {
+      const info = await youtube(ytId).catch((err) => {
+        console.error('youtube blocked', err.message);
+        throw Object.assign(new Error('youtube blocked'), { youtube: true });
+      });
+      return draftFromYoutube(info, extract);
+    }
     return { draft: await extract({ url: text }), photo: null };
   }
   if (text.length > MAX_TEXT) throw new Error('text too long');
@@ -162,7 +171,7 @@ async function handleMessage(message, deps) {
     if (!made.draft.title) throw new Error('no recipe found');
   } catch (err) {
     console.error('extract failed', err.message);
-    return say(t.failed);
+    return say(err.youtube ? t.youtube : t.failed);
   }
 
   try {
