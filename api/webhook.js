@@ -167,7 +167,7 @@ function createHandler({
   download = downloadVideo,
   youtube = youtubeInfo,
   thumbnail = youtubeThumbnail,
-  gemini = process.env.GEMINI_API_KEY ? (url, categories) => youtubeDraft(url, categories, process.env.GEMINI_API_KEY) : null,
+  gemini = (process.env.GEMINI_API_KEY || process.env.katya4) ? (url, categories) => youtubeDraft(url, categories, (process.env.GEMINI_API_KEY || process.env.katya4)) : null,
   tg = telegram,
   store: storage = store,
   defer = waitUntil,

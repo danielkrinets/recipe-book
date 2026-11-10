@@ -14,7 +14,7 @@ function createHandler({
   video = (bytes) => readVideo(bytes, process.env.GROQ_API_KEY),
   download = downloadVideo,
   youtube = youtubeInfo,
-  gemini = process.env.GEMINI_API_KEY ? (url, categories) => youtubeDraft(url, categories, process.env.GEMINI_API_KEY) : null,
+  gemini = (process.env.GEMINI_API_KEY || process.env.katya4) ? (url, categories) => youtubeDraft(url, categories, (process.env.GEMINI_API_KEY || process.env.katya4)) : null,
   thumbnail = youtubeThumbnail,
   store: storage = store,
 } = {}) {
