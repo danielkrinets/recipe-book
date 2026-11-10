@@ -203,3 +203,11 @@ test('every interface language has the same keys', () => {
   const keys = Object.keys(app.I18N.ru).sort().join();
   for (const lang of Object.keys(app.I18N)) assert.equal(Object.keys(app.I18N[lang]).sort().join(), keys, lang);
 });
+
+test('the source link survives import and editing, and only web links are kept', () => {
+  const { app } = load();
+  assert.equal(app.fromServer({ title: 'Пицца', category: 'Выпечка', source: 'https://youtu.be/abc' }).source, 'https://youtu.be/abc');
+  assert.equal(app.fromServer({ title: 'Пицца', category: 'Выпечка', source: 'javascript:alert(1)' }).source, '');
+  assert.equal(app.parseRecipe(form({ source: ' https://example.com/r ' })).recipe.source, 'https://example.com/r');
+  assert.ok(app.parseRecipe(form({ source: 'ftp://x' })).error);
+});

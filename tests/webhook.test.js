@@ -265,6 +265,7 @@ test('a YouTube link that cannot be downloaded uses the title and description as
   assert.equal(extracted[0].text, 'Video title: Пицца\n\nVideo description: мука 300 г');
   assert.equal(extracted[0].images, undefined);
   assert.equal(store.calls[0].method, 'savePhoto');
+  assert.equal(store.calls[1].draft.source, 'https://youtube.com/shorts/abcdefghijk?si=x');
   assert.match(tg.calls.at(-1).text, /Блины/);
 });
 

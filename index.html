@@ -3,29 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#1D1520">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#FFFFFF">
 <title>Книга рецептов</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #1D1520;
-    --surface: #2A2030;
-    --surface-2: #362A3D;
-    --text: #F5EDE4;
-    --muted: #B4A3B3;
-    --accent: #F2B33D;
-    --accent-ink: #2A1A05;
-    --danger: #F0857A;
-    --line: rgba(245, 237, 228, 0.12);
+    --bg: #FFFFFF;
+    --text: #222222;
+    --muted: #717171;
+    --line: #EBEBEB;
+    --line-strong: #DDDDDD;
+    --surface: #F7F7F7;
+    --accent: #E3385A;
+    --accent-grad: linear-gradient(90deg, #EC3D5C 0%, #D42A6A 100%);
+    --danger: #C13515;
+    --shadow-float: 0 6px 20px rgba(0, 0, 0, 0.12);
+    --shadow-pill: 0 3px 12px rgba(0, 0, 0, 0.1);
     --safe-top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
     --safe-bottom: calc(var(--tg-safe-area-inset-bottom, 0px) + env(safe-area-inset-bottom, 0px));
-    --r-lg: 22px;
-    --r-md: 14px;
-    color-scheme: dark;
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    color-scheme: light;
   }
 
   * { box-sizing: border-box; }
@@ -33,162 +34,244 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font: 400 16px/1.5 'Rubik', system-ui, sans-serif;
+    font: 500 16px/1.5 'Manrope', 'Rubik', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
   }
+  [dir="rtl"] body { font-family: 'Rubik', system-ui, sans-serif; }
   button, input, select, textarea { font: inherit; color: inherit; }
-  button { cursor: pointer; }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .icon { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  button { cursor: pointer; user-select: none; -webkit-user-select: none; }
+  :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  .icon { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   [dir="rtl"] .flip { transform: scaleX(-1); }
 
+  /* Press feedback: everything tappable sinks a little, so a tap feels deliberate */
+  .btn, .tool, .round, .heart, .card-open, .fab, .step-btn, .lang, .emoji, .link-btn {
+    transition: transform 180ms var(--ease), opacity 180ms var(--ease), background-color 180ms var(--ease), box-shadow 180ms var(--ease);
+  }
+  .btn:active, .tool:active, .round:active, .heart:active, .fab:active, .step-btn:active, .lang:active, .emoji:active { transform: scale(0.94); }
+  .card-open:active { transform: scale(0.98); }
+
   .app {
-    max-width: 640px;
+    max-width: 680px;
     margin: 0 auto;
-    padding: calc(var(--safe-top) + 20px) 16px calc(var(--safe-bottom) + 96px);
+    padding: calc(var(--safe-top) + 16px) 20px calc(var(--safe-bottom) + 110px);
   }
   .app.hero-view { padding-top: 0; }
+  .app.enter > * { animation: enter 320ms var(--ease) both; }
+  .app.enter > *:nth-child(2) { animation-delay: 30ms; }
+  .app.enter > *:nth-child(3) { animation-delay: 60ms; }
+  .app.enter > *:nth-child(n+4) { animation-delay: 90ms; }
+  @keyframes enter { from { opacity: 0; transform: translateY(12px); } }
+  .fade { animation: fade 260ms var(--ease) both; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } }
 
   /* Header */
-  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
-  .back {
-    display: inline-flex; align-items: center; gap: 6px;
-    border: 0; background: var(--surface); border-radius: 999px; padding: 9px 16px 9px 12px; font-weight: 500;
+  .top { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .round {
+    width: 36px; height: 36px; border-radius: 50%; border: 0; display: grid; place-items: center;
+    background: #fff; color: var(--text); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.12);
   }
-  .home-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
-  h1 { font-size: 34px; line-height: 1.05; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
-  h2 { font-size: 20px; font-weight: 600; margin: 0 0 12px; }
-  .sub { margin: 4px 0 0; color: var(--muted); }
-  .langs { display: inline-flex; background: var(--surface); border-radius: 999px; padding: 3px; flex: none; }
-  .lang { border: 0; background: transparent; border-radius: 999px; padding: 5px 10px; font-size: 13px; color: var(--muted); }
-  .lang.on { background: var(--surface-2); color: var(--text); }
+  .round .icon { width: 18px; height: 18px; stroke-width: 2.4; }
+  .home-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  h1 { font-size: 26px; line-height: 1.1; font-weight: 800; letter-spacing: -0.03em; margin: 0; }
+  h2 { font-size: 22px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 14px; }
+  .sub { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+  .langs { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px; flex: none; }
+  .lang { border: 0; background: transparent; border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 700; color: var(--muted); }
+  .lang.on { background: var(--text); color: #fff; }
 
-  /* Import */
-  .import { background: var(--surface); border-radius: var(--r-lg); padding: 16px; margin-bottom: 18px; }
-  .import h2 { margin-bottom: 10px; }
-  .import textarea {
-    width: 100%; min-height: 52px; max-height: 180px; resize: vertical;
-    background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; line-height: 1.4;
+  /* Search pill */
+  .search {
+    position: relative; display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+    background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 0 20px; box-shadow: var(--shadow-pill);
   }
-  .import textarea::placeholder, .field::placeholder, .search input::placeholder { color: var(--muted); opacity: 0.8; }
-  .import-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
-  .hint { color: var(--muted); font-size: 14px; margin: 0; }
-  .link-btn { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
-  .progress { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: var(--muted); }
-  .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spin 0.9s linear infinite; }
+  .search .icon { color: var(--text); stroke-width: 2.4; width: 18px; height: 18px; }
+  .search input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 15px 0; font-weight: 600; outline: none; }
+  .search input::placeholder { color: var(--muted); font-weight: 500; }
+
+  /* Import card */
+  .import { border: 1px solid var(--line-strong); border-radius: 16px; padding: 16px; margin-bottom: 20px; }
+  .import h2 { font-size: 18px; margin-bottom: 4px; }
+  .import .sub { margin: 0 0 12px; font-size: 14px; line-height: 1.4; }
+  .import-row { display: flex; gap: 8px; align-items: flex-end; }
+  .import textarea {
+    display: block; width: 100%; min-height: 48px; max-height: 160px; flex: 1; min-width: 0; resize: none; field-sizing: content;
+    border: 1px solid var(--line-strong); border-radius: 12px; padding: 12px 14px; line-height: 1.4; background: #fff;
+    transition: border-color 160ms, box-shadow 160ms;
+  }
+  .import textarea:focus { outline: none; border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+  .import textarea::placeholder, .field::placeholder { color: var(--muted); }
+  .import .btn-primary { flex: none; padding: 0 18px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
+  .link-btn { border: 0; background: none; padding: 0; color: var(--text); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+  .progress { display: flex; align-items: center; gap: 10px; margin-top: 14px; color: var(--muted); font-size: 15px; }
+  .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line-strong); border-top-color: var(--accent); animation: spin 0.9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* Buttons */
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    border: 0; border-radius: 999px; padding: 12px 20px; font-weight: 600; min-height: 46px;
+    border: 0; border-radius: 10px; padding: 13px 22px; font-weight: 700; min-height: 48px;
   }
-  .btn[disabled] { opacity: 0.5; }
-  .btn-primary { background: var(--accent); color: var(--accent-ink); }
-  .btn-soft { background: var(--surface-2); color: var(--text); }
-  .btn-ghost { background: transparent; color: var(--muted); }
+  .btn[disabled] { opacity: 0.45; }
+  .btn-primary { background: var(--accent-grad); color: #fff; }
+  .btn-dark { background: var(--text); color: #fff; }
+  .btn-outline { background: #fff; border: 1px solid var(--text); color: var(--text); }
+  .btn-soft { background: var(--surface); color: var(--text); }
+  .btn-ghost { background: transparent; color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
   .btn-danger { background: transparent; color: var(--danger); }
-  .btn-round { width: 44px; min-height: 44px; padding: 0; }
   .fab {
-    position: fixed; inset-inline-end: max(16px, calc(50vw - 304px)); bottom: calc(var(--safe-bottom) + 20px);
-    width: 58px; height: 58px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink);
-    display: grid; place-items: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); z-index: 5;
+    position: fixed; inset-inline-end: max(20px, calc(50vw - 320px)); bottom: calc(var(--safe-bottom) + 22px);
+    display: inline-flex; align-items: center; gap: 8px; height: 52px; padding: 0 22px 0 18px; border-radius: 999px; border: 0;
+    background: var(--text); color: #fff; font-weight: 700; box-shadow: var(--shadow-float); z-index: 5;
   }
-  .fab .icon { width: 26px; height: 26px; stroke-width: 2.4; }
+  .fab .icon { stroke-width: 2.6; }
 
-  /* Search and chips */
-  .search { position: relative; margin-bottom: 14px; }
-  .search .icon { position: absolute; inset-inline-start: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); }
-  .search input {
-    width: 100%; border: 0; background: var(--surface); border-radius: 999px; padding: 13px 16px 13px 44px;
+  /* Category bar: emoji over label, underline marks the chosen one */
+  .cats {
+    display: flex; gap: 26px; overflow-x: auto; margin: 0 -20px 22px; padding: 0 20px;
+    border-bottom: 1px solid var(--line); scrollbar-width: none;
   }
-  [dir="rtl"] .search input { padding: 13px 44px 13px 16px; }
-  .chips { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px 22px; padding: 2px 16px; scrollbar-width: none; }
-  .chips::-webkit-scrollbar { display: none; }
-  .chip {
-    display: inline-flex; align-items: center; gap: 7px; flex: none; white-space: nowrap;
-    border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 8px 14px; font-weight: 500;
+  .cats::-webkit-scrollbar { display: none; }
+  .cat {
+    position: relative; flex: none; display: grid; justify-items: center; gap: 6px; padding: 4px 0 12px;
+    border: 0; background: none; color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap;
+    transition: color 200ms var(--ease);
   }
-  .chip .count { color: var(--muted); font-weight: 400; }
-  .chip.add { border-style: dashed; color: var(--muted); }
+  .cat .glyph { height: 26px; display: grid; place-items: center; font-size: 22px; line-height: 1; filter: grayscale(0.35); opacity: 0.75; transition: filter 200ms, opacity 200ms; }
+  .cat .glyph .icon { width: 24px; height: 24px; stroke-width: 1.7; }
+  .cat::after {
+    content: ''; position: absolute; inset-inline: 0; bottom: -1px; height: 2px; background: var(--text);
+    transform: scaleX(0); transition: transform 240ms var(--ease);
+  }
+  .cat.on { color: var(--text); }
+  .cat.on .glyph { filter: none; opacity: 1; }
+  .cat.on::after { transform: scaleX(1); }
+  .cat.add .glyph { opacity: 1; }
 
-  /* Recipe tiles */
-  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  .tile {
-    position: relative; display: block; aspect-ratio: 4 / 5; border: 0; padding: 0; overflow: hidden;
-    border-radius: var(--r-lg); background: var(--surface); text-align: start;
+  /* Recipe cards */
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 14px; }
+  .card { position: relative; min-width: 0; }
+  .card-open { display: block; width: 100%; border: 0; padding: 0; background: none; text-align: start; }
+  .card-photo {
+    position: relative; display: block; aspect-ratio: 1; border-radius: 14px; overflow: hidden; background: var(--surface);
   }
-  .tile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .tile .no-photo { position: absolute; inset: 0; display: grid; place-items: center; font-size: 54px; background: color-mix(in srgb, var(--c, #888) 22%, var(--surface)); }
-  .tile .shade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(20, 12, 22, 0.92) 0%, rgba(20, 12, 22, 0.15) 55%, transparent 75%); }
-  .tile .t-text { position: absolute; inset-inline: 12px; bottom: 12px; }
-  .tile .t-title { display: block; font-weight: 600; font-size: 16px; line-height: 1.2; color: #fff; }
-  .tile .t-meta { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 13px; color: rgba(255, 255, 255, 0.75); }
-  .tile .t-meta .icon { width: 14px; height: 14px; }
-  .tile .t-star { position: absolute; top: 10px; inset-inline-end: 10px; color: var(--accent); }
-  .tile .t-star .icon { fill: currentColor; width: 18px; height: 18px; }
-  .empty { color: var(--muted); padding: 24px 0; margin: 0; }
+  .card-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 400ms var(--ease); }
+  .card-open:active .card-photo img { transform: scale(1.04); }
+  .no-photo { position: absolute; inset: 0; display: grid; place-items: center; font-size: 52px; background: var(--c, var(--surface)); }
+  .card-badge {
+    position: absolute; top: 10px; inset-inline-start: 10px; display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(255, 255, 255, 0.94); border-radius: 999px; padding: 3px 9px; font-size: 12px; font-weight: 700;
+  }
+  .card-badge .icon { width: 13px; height: 13px; color: var(--accent); }
+  .card-title { display: block; margin-top: 10px; font-weight: 700; font-size: 15px; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .card-meta { display: block; color: var(--muted); font-size: 14px; line-height: 1.35; margin-top: 2px; }
+  .heart {
+    position: absolute; top: 6px; inset-inline-end: 6px; width: 36px; height: 36px; border: 0; background: none; padding: 0;
+    display: grid; place-items: center; color: #fff;
+  }
+  .heart .icon { width: 24px; height: 24px; stroke-width: 2; fill: rgba(0, 0, 0, 0.45); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)); }
+  .heart.on .icon, .round.on .icon { fill: var(--accent); color: var(--accent); stroke: #fff; }
+  .round.on .icon { stroke: var(--accent); }
+  .heart.pop .icon, .round.pop .icon { animation: pop 380ms var(--ease); }
+  @keyframes pop { 40% { transform: scale(1.3); } }
+  .empty { color: var(--muted); padding: 32px 0; margin: 0; text-align: center; }
 
   /* Recipe page */
-  .hero { position: relative; margin: 0 -16px; min-height: 300px; height: 58vh; max-height: 520px; overflow: hidden; background: var(--surface); }
+  .hero { position: relative; margin: 0 -20px; aspect-ratio: 4 / 3; max-height: 62vh; width: calc(100% + 40px); overflow: hidden; background: var(--surface); }
   .hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .hero .no-photo { position: absolute; inset: 0; display: grid; place-items: center; font-size: 96px; background: color-mix(in srgb, var(--c, #888) 25%, var(--surface)); }
-  .hero .shade { position: absolute; inset: 0; background: linear-gradient(to top, var(--bg) 2%, rgba(29, 21, 32, 0.55) 40%, transparent 70%); }
-  .hero .back { position: absolute; top: calc(var(--safe-top) + 14px); inset-inline-start: 16px; background: rgba(29, 21, 32, 0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-  .hero-text { position: absolute; inset-inline: 16px; bottom: 18px; }
-  .recipe-title { font-size: 40px; line-height: 1.02; font-weight: 800; letter-spacing: -0.025em; margin: 10px 0 0; text-wrap: balance; }
-  .tags { display: flex; flex-wrap: wrap; gap: 8px; }
-  .tag { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 5px 12px; font-size: 14px; background: rgba(29, 21, 32, 0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-  .tag.ai { color: var(--accent); }
-  .tag .icon { width: 16px; height: 16px; }
-  .facts { display: flex; flex-wrap: wrap; gap: 18px; margin: 18px 0 16px; color: var(--muted); }
-  .fact { display: inline-flex; align-items: center; gap: 7px; }
-  .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
-  .tool { display: inline-flex; align-items: center; gap: 8px; border: 0; background: var(--surface); border-radius: 999px; padding: 10px 16px; font-weight: 500; }
-  .tool.on { color: var(--accent); }
-  .tool.on .icon-star { fill: currentColor; }
-  .translate { display: flex; gap: 8px; margin: -14px 0 28px; flex-wrap: wrap; align-items: center; }
-  .translate input { flex: 1 1 160px; min-width: 0; border: 0; background: var(--surface); border-radius: 999px; padding: 11px 16px; }
+  .hero .no-photo { font-size: 110px; }
+  .hero-bar {
+    position: absolute; top: calc(var(--safe-top) + 12px); inset-inline: 20px; display: flex; justify-content: space-between; gap: 10px;
+  }
+  .hero-bar .spacer { flex: 1; }
+  .sheet { position: relative; margin: -24px -20px 0; padding: 28px 20px 0; background: var(--bg); border-radius: 24px 24px 0 0; }
+  .recipe-title { font-size: 28px; line-height: 1.15; font-weight: 800; letter-spacing: -0.03em; margin: 0; text-wrap: balance; }
+  .recipe-sub { margin: 6px 0 0; color: var(--text); font-weight: 600; }
+  .recipe-sub .muted { color: var(--muted); font-weight: 500; }
+  .divider { height: 1px; background: var(--line); margin: 24px 0; border: 0; }
+  .highlights { display: grid; gap: 20px; }
+  .hl { display: grid; grid-template-columns: 28px 1fr; gap: 16px; align-items: start; }
+  .hl .icon { width: 26px; height: 26px; stroke-width: 1.6; margin-top: 1px; }
+  .hl b { display: block; font-weight: 700; }
+  .hl span { display: block; color: var(--muted); font-size: 14px; }
+  .tools { display: flex; gap: 10px; flex-wrap: wrap; }
+  .tool {
+    display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line-strong); background: #fff;
+    border-radius: 10px; padding: 10px 14px; font-weight: 700; font-size: 14px;
+  }
+  .tool .icon { width: 18px; height: 18px; }
+  .tool.on { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+  .translate { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+  .translate input { flex: 1 1 160px; min-width: 0; border: 1px solid var(--line-strong); border-radius: 10px; padding: 12px 14px; }
+  .translate .btn { min-height: 46px; }
 
-  .section { margin-bottom: 30px; }
-  .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
   .section-head h2 { margin: 0; }
-  .servings { display: inline-flex; align-items: center; gap: 4px; background: var(--surface); border-radius: 999px; padding: 3px; }
-  .servings .btn-round { background: transparent; min-height: 38px; width: 38px; }
-  .serv-val { min-width: 84px; text-align: center; font-weight: 500; }
+  .servings { display: inline-flex; align-items: center; gap: 10px; }
+  .step-btn {
+    width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line-strong); background: #fff; display: grid; place-items: center; padding: 0; color: var(--text);
+  }
+  .step-btn .icon { width: 14px; height: 14px; stroke-width: 2.6; }
+  .serv-val { min-width: 76px; text-align: center; font-weight: 700; font-size: 15px; }
   .ingr { list-style: none; margin: 0; padding: 0; }
-  .ingr li { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
-  .ingr b { font-weight: 500; color: var(--accent); white-space: nowrap; }
-  .steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
-  .step { display: grid; grid-template-columns: 44px 1fr; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
-  .step-num { font-size: 30px; line-height: 1; font-weight: 800; color: var(--accent); }
-  .step.done .step-num { color: var(--muted); }
+  .ingr li { display: flex; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .ingr li:last-child { border-bottom: 0; }
+  .ingr b { font-weight: 700; white-space: nowrap; }
+  .steps { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+  .step {
+    display: grid; grid-template-columns: 32px 1fr; gap: 14px; padding: 12px; margin: 0 -12px; border-radius: 12px; cursor: pointer;
+    transition: background-color 200ms var(--ease);
+  }
+  .step:active { background: var(--surface); }
+  .step-num {
+    width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--text); display: grid; place-items: center;
+    font-weight: 800; font-size: 14px; transition: background-color 220ms var(--ease), border-color 220ms;
+  }
+  .step.done .step-num { background: var(--text); color: #fff; }
   .step.done .step-text { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
-  .step-num .icon { width: 28px; height: 28px; stroke-width: 2.4; }
-  .end-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+  .step-text { padding-top: 4px; transition: color 220ms; }
+  .step-num .icon { width: 16px; height: 16px; stroke-width: 3; }
+  .end-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+
+  /* Bottom bar with the link to the original, like a booking bar */
+  .bottom-bar {
+    position: fixed; inset-inline: 0; bottom: 0; z-index: 6; background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line);
+    padding: 12px 20px calc(var(--safe-bottom) + 12px);
+  }
+  .bottom-bar .in { max-width: 640px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .bottom-bar .src { min-width: 0; }
+  .bottom-bar .btn { flex: none; white-space: nowrap; }
+  .bottom-bar .src b { display: block; font-weight: 800; }
+  .bottom-bar .src span { display: block; color: var(--muted); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* Forms */
-  .head { margin-bottom: 18px; }
-  .form { display: grid; gap: 16px; }
-  .form label, .field-title { display: grid; gap: 6px; color: var(--muted); font-size: 14px; margin: 0; }
+  .head { margin-bottom: 22px; }
+  .form { display: grid; gap: 18px; }
+  .form label, .field-title { display: grid; gap: 8px; color: var(--text); font-size: 14px; font-weight: 700; margin: 0; }
   .form input, .form select, .form textarea {
-    width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-md); padding: 12px 14px; color: var(--text);
+    width: 100%; border: 1px solid var(--line-strong); background: #fff; border-radius: 10px; padding: 13px 14px; color: var(--text); font-weight: 500;
+    transition: border-color 160ms, box-shadow 160ms;
   }
+  .form input:focus, .form select:focus, .form textarea:focus { outline: none; border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .ingr-set { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
-  .ingr-set legend { color: var(--muted); font-size: 14px; margin-bottom: 6px; }
+  .ingr-set legend { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
   .ing-row { display: grid; grid-template-columns: 1fr 72px 64px 36px; gap: 6px; }
   .btn-remove { border: 0; background: transparent; color: var(--muted); display: grid; place-items: center; }
   .photo-box { display: grid; gap: 10px; }
-  .photo-preview { width: 100%; max-height: 260px; object-fit: cover; border-radius: var(--r-md); }
+  .photo-preview { width: 100%; max-height: 260px; object-fit: cover; border-radius: 14px; }
   .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
-  .emoji { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; font-size: 22px; aspect-ratio: 1; }
-  .emoji.on { border-color: var(--accent); background: var(--surface-2); }
+  .emoji { border: 1px solid var(--line-strong); background: #fff; border-radius: 12px; font-size: 22px; aspect-ratio: 1; }
+  .emoji.on { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
   .actions { display: grid; gap: 10px; margin-top: 8px; }
-  .error { color: var(--danger); margin: 0; }
+  .error { color: var(--danger); margin: 10px 0 0; font-size: 15px; }
 
   @media (prefers-reduced-motion: reduce) {
+    .app.enter > *, .fade, .heart.pop .icon, .round.pop .icon { animation: none; }
+    .btn:active, .tool:active, .round:active, .heart:active, .fab:active, .step-btn:active, .card-open:active { transform: none; }
     .spinner { animation-duration: 3s; }
   }
 </style>
@@ -198,7 +281,7 @@
 
 <script>
   const tg = window.Telegram && window.Telegram.WebApp;
-  const BG = '#1D1520';
+  const BG = '#FFFFFF';
   if (tg) {
     tg.ready();
     tg.expand();
@@ -456,6 +539,7 @@
   let done = {};
   let customCats = [];
   let lastView = '';
+  let lastRecipe = '';
 
   const app = document.getElementById('app');
 
@@ -493,8 +577,12 @@
   const I18N = {
     ru: {
       langName: 'Русский',
-      importTitle: 'Добавить рецепт', importPh: 'Ссылка на рецепт или видео (YouTube, TikTok, Instagram) или сам текст рецепта',
-      importBtn: 'Импортировать', importing: 'Читаю рецепт…', importingVideo: 'Смотрю видео, это займёт до минуты…',
+      allCats: 'Все', video: 'Видео', openVideo: 'Смотреть видео', openPage: 'Открыть оригинал', sourceTitle: 'Оригинал',
+      sourceLabel: 'Ссылка на оригинал (видео или сайт)', errSource: 'Ссылка должна начинаться с https://',
+      importSub: 'Ссылка на видео, сайт или текст. ИИ разберёт рецепт сам.',
+      timeTitle: 'Время приготовления', servTitle: 'Порций по рецепту', aiSub: 'Рецепт собран нейросетью, проверьте количества', newShort: 'Рецепт',
+      importTitle: 'Добавить рецепт', importPh: 'Вставьте ссылку',
+      importBtn: 'Добавить', importing: 'Читаю рецепт…', importingVideo: 'Смотрю видео, это займёт до минуты…',
       importFailed: 'Рецепт не нашёлся. Проверьте ссылку или вставьте текст рецепта.',
       importYoutube: 'YouTube не открыл это видео. Скопируйте описание ролика и вставьте его сюда.',
       importOnlyTg: 'Импорт работает, когда приложение открыто в Telegram.', importEmpty: 'Вставьте ссылку или текст рецепта.',
@@ -537,8 +625,12 @@
     },
     en: {
       langName: 'English',
-      importTitle: 'Add a recipe', importPh: 'A recipe or video link (YouTube, TikTok, Instagram) or the recipe text',
-      importBtn: 'Import', importing: 'Reading the recipe…', importingVideo: 'Watching the video, this takes up to a minute…',
+      allCats: 'All', video: 'Video', openVideo: 'Watch video', openPage: 'Open original', sourceTitle: 'Original',
+      sourceLabel: 'Link to the original (video or website)', errSource: 'The link must start with https://',
+      importSub: 'A video or website link, or the text. AI does the rest.',
+      timeTitle: 'Cooking time', servTitle: 'Servings in the recipe', aiSub: 'Put together by AI, check the amounts', newShort: 'Recipe',
+      importTitle: 'Add a recipe', importPh: 'Paste a link',
+      importBtn: 'Add', importing: 'Reading the recipe…', importingVideo: 'Watching the video, this takes up to a minute…',
       importFailed: 'No recipe found. Check the link or paste the recipe text.',
       importYoutube: 'YouTube would not open this video. Copy the video description and paste it here.',
       importOnlyTg: 'Import works when the app is opened in Telegram.', importEmpty: 'Paste a link or the recipe text.',
@@ -576,8 +668,12 @@
     },
     he: {
       langName: 'עברית',
-      importTitle: 'הוספת מתכון', importPh: 'קישור למתכון או לסרטון (YouTube, TikTok, Instagram) או טקסט המתכון',
-      importBtn: 'ייבוא', importing: 'קורא את המתכון…', importingVideo: 'צופה בסרטון, זה ייקח עד דקה…',
+      allCats: 'הכול', video: 'סרטון', openVideo: 'צפייה בסרטון', openPage: 'פתיחת המקור', sourceTitle: 'המקור',
+      sourceLabel: 'קישור למקור (סרטון או אתר)', errSource: 'הקישור צריך להתחיל ב-https://',
+      importSub: 'קישור לסרטון, לאתר או טקסט. ה-AI יעשה את השאר.',
+      timeTitle: 'זמן הכנה', servTitle: 'מנות במתכון', aiSub: 'נאסף על ידי AI, בדקו את הכמויות', newShort: 'מתכון',
+      importTitle: 'הוספת מתכון', importPh: 'הדביקו קישור',
+      importBtn: 'הוספה', importing: 'קורא את המתכון…', importingVideo: 'צופה בסרטון, זה ייקח עד דקה…',
       importFailed: 'לא נמצא מתכון. בדקו את הקישור או הדביקו את טקסט המתכון.',
       importYoutube: 'יוטיוב לא פתח את הסרטון. העתיקו את תיאור הסרטון והדביקו אותו כאן.',
       importOnlyTg: 'הייבוא עובד כשהאפליקציה פתוחה בטלגרם.', importEmpty: 'הדביקו קישור או טקסט של מתכון.',
@@ -683,8 +779,19 @@
         ? { name: i, amount: '', unit: '' }
         : { name: String(i.name || ''), amount: String(i.amount ?? ''), unit: String(i.unit ?? '') })),
       steps: (s.steps || []).map(String),
+      source: safeUrl(s.source),
       ai: true
     };
+  }
+
+  // Only plain web links are opened; anything else is dropped
+  function safeUrl(value) {
+    const text = String(value || '').trim();
+    return /^https?:\/\/[^\s"'<>]+$/i.test(text) ? text : '';
+  }
+
+  function hostOf(url) {
+    try { return new URL(url).hostname.replace(/^(www|m)\./, ''); } catch (e) { return ''; }
   }
 
   function apiPost(path, body) {
@@ -761,7 +868,11 @@
     trash: '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 12.5h9l1-12.5"/>',
     sparkle: '<path d="M12 3.5l1.8 5.2 5.2 1.8-5.2 1.8L12 17.5l-1.8-5.2L5 10.5l5.2-1.8z"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
-    close: '<path d="M6 6l12 12M18 6L6 18"/>'
+    close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    heart: '<path d="M12 20.5s-7.5-4.6-7.5-10.3A4.2 4.2 0 0112 7.6a4.2 4.2 0 017.5 2.6c0 5.7-7.5 10.3-7.5 10.3z"/>',
+    play: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10.5 9.5v5l4-2.5z"/>',
+    link: '<path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/>',
+    grid: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>'
   };
   const icon = (name, cls = '') => `<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
 
@@ -836,6 +947,7 @@
       servings: '4',
       steps: '',
       photo: '',
+      source: '',
       ingredients: [{ name: '', amount: '', unit: '' }]
     };
   }
@@ -848,6 +960,7 @@
       servings: String(r.baseServings),
       steps: r.steps.join('\n'),
       photo: r.photo || '',
+      source: r.source || '',
       ingredients: r.ingredients.map(i => ({ ...i }))
     };
   }
@@ -860,6 +973,7 @@
       time: document.getElementById('f-time').value,
       servings: document.getElementById('f-serv').value,
       steps: document.getElementById('f-steps').value,
+      source: document.getElementById('f-source').value,
       photo,
       ingredients: [...document.querySelectorAll('#ing-list .ing-row')].map(row => ({
         name: row.querySelector('[data-f="name"]').value,
@@ -884,33 +998,40 @@
     render();
   }
 
-  function tile(r) {
+  const FAV = '__fav';
+
+  function card(r) {
     const cat = catOf(r.category);
+    const meta = [catLabel(r.category), r.time ? timeText(r) : ''].filter(Boolean).join(', ');
     return `
-      <button class="tile" data-action="open-recipe" data-id="${esc(r.id)}" style="--c:${cat.color}">
-        ${r.photo ? `<img src="${esc(r.photo)}" alt="" loading="lazy">` : `<span class="no-photo" aria-hidden="true">${cat.icon}</span>`}
-        <span class="shade"></span>
-        ${r.favorite ? `<span class="t-star">${icon('star')}</span>` : ''}
-        <span class="t-text">
-          <span class="t-title" dir="auto">${esc(r.title)}</span>
-          ${r.time ? `<span class="t-meta">${icon('clock')}${esc(timeText(r))}</span>` : ''}
-        </span>
-      </button>`;
+      <article class="card">
+        <button class="card-open" data-action="open-recipe" data-id="${esc(r.id)}">
+          <span class="card-photo" style="--c:${cat.color}">
+            ${r.photo ? `<img src="${esc(r.photo)}" alt="" loading="lazy">` : `<span class="no-photo" aria-hidden="true">${cat.icon}</span>`}
+            ${r.source && VIDEO_LINK.test(r.source) ? `<span class="card-badge">${icon('play')}${t('video')}</span>` : ''}
+          </span>
+          <span class="card-title" dir="auto">${esc(r.title)}</span>
+          <span class="card-meta">${esc(meta)}</span>
+        </button>
+        <button class="heart${r.favorite ? ' on' : ''}" data-action="toggle-fav" data-id="${esc(r.id)}" aria-pressed="${!!r.favorite}" aria-label="${r.favorite ? t('inFav') : t('toFav')}">${icon('heart')}</button>
+      </article>`;
   }
 
   function grid(items, emptyText) {
-    return items.length ? `<div class="grid">${items.map(tile).join('')}</div>` : `<p class="empty">${emptyText}</p>`;
+    return items.length ? `<div class="grid">${items.map(card).join('')}</div>` : `<p class="empty">${emptyText}</p>`;
   }
 
   function resultsHtml() {
     const q = state.query.trim().toLowerCase();
-    const found = q
-      ? recipes.filter(r => r.title.toLowerCase().includes(q) || r.ingredients.some(i => i.name.toLowerCase().includes(q)))
-      : recipes;
-    return grid(found, q ? t('nothing') : t('noRecipes'));
+    let found = recipes;
+    if (state.category === FAV) found = found.filter(r => r.favorite);
+    else if (state.category) found = found.filter(r => r.category === state.category);
+    if (q) found = found.filter(r => r.title.toLowerCase().includes(q) || r.ingredients.some(i => i.name.toLowerCase().includes(q)));
+    const empty = q ? t('nothing') : state.category === FAV ? t('favsEmpty') : state.category ? t('catEmpty') : t('noRecipes');
+    return grid(found, empty);
   }
 
-  const fab = () => `<button class="fab" data-action="new" aria-label="${t('newRecipe')}">${icon('plus')}</button>`;
+  const fab = () => `<button class="fab" data-action="new">${icon('plus')}${t('newShort')}</button>`;
 
   function langSwitch() {
     return `<div class="langs" role="group">${Object.keys(I18N).map(code =>
@@ -922,23 +1043,29 @@
     return `
       <section class="import">
         <h2>${t('importTitle')}</h2>
-        <textarea id="import-text" rows="3" placeholder="${t('importPh')}" aria-label="${t('importTitle')}"${busy ? ' disabled' : ''}>${esc(state.importText)}</textarea>
+        <p class="sub">${t('importSub')}</p>
+        <div class="import-row">
+          <textarea id="import-text" rows="1" placeholder="${t('importPh')}" aria-label="${t('importTitle')}"${busy ? ' disabled' : ''}>${esc(state.importText)}</textarea>
+          ${busy ? '' : `<button class="btn btn-primary" data-action="import">${t('importBtn')}</button>`}
+        </div>
         ${busy ? `<div class="progress" role="status"><span class="spinner"></span>${esc(busy)}</div>` : ''}
         ${state.importError ? `<p class="error" role="alert">${esc(state.importError)}</p>` : ''}
-        <div class="import-row">
-          <p class="hint">${t('chatHint')} ${BOT_USERNAME ? `<button class="link-btn" data-action="open-bot">${t('openBot')}</button>` : ''}</p>
-          <button class="btn btn-primary" data-action="import"${busy ? ' disabled' : ''}>${t('importBtn')}</button>
-        </div>
+        <p class="hint">${t('chatHint')} ${BOT_USERNAME ? `<button class="link-btn" data-action="open-bot">${t('openBot')}</button>` : ''}</p>
       </section>`;
   }
 
+  function catTab(value, glyph, label) {
+    const on = state.category === value;
+    return `<button class="cat${on ? ' on' : ''}" data-action="filter" data-cat="${esc(value)}" aria-pressed="${on}"><span class="glyph" aria-hidden="true">${glyph}</span>${esc(label)}</button>`;
+  }
+
   function renderHome() {
-    const favCount = recipes.filter(r => r.favorite).length;
-    const chips = allCategories().map(c => `
-      <button class="chip" data-action="open-cat" data-cat="${esc(c.name)}">
-        <span aria-hidden="true">${c.icon}</span>${esc(catLabel(c.name))}
-        <span class="count">${recipes.filter(r => r.category === c.name).length}</span>
-      </button>`).join('');
+    const tabs = [
+      catTab('', icon('grid'), t('allCats')),
+      recipes.some(r => r.favorite) ? catTab(FAV, icon('heart'), t('favs')) : '',
+      ...allCategories().filter(c => c.name !== OLD_BOT_CAT).map(c => catTab(c.name, c.icon, catLabel(c.name))),
+      `<button class="cat add" data-action="new-cat"><span class="glyph" aria-hidden="true">${icon('plus')}</span>${t('addCategory')}</button>`
+    ].join('');
     return `
       <div class="home-head">
         <div>
@@ -951,34 +1078,8 @@
       <label class="search">${icon('search')}
         <input id="search" type="search" placeholder="${t('search')}" aria-label="${t('search')}" autocomplete="off" value="${esc(state.query)}">
       </label>
-      <div class="chips">
-        ${favCount ? `<button class="chip" data-action="open-favs">${icon('star')}${t('favs')}<span class="count">${favCount}</span></button>` : ''}
-        ${chips}
-        <button class="chip add" data-action="new-cat">${icon('plus')}${t('addCategory')}</button>
-      </div>
+      <nav class="cats">${tabs}</nav>
       <div id="results">${resultsHtml()}</div>
-      ${fab()}`;
-  }
-
-  function renderFavs() {
-    const items = recipes.filter(r => r.favorite);
-    return `
-      <header class="head">
-        <h1>${t('favs')}</h1>
-        <p class="sub">${t('count')(items.length)}</p>
-      </header>
-      ${grid(items, t('favsEmpty'))}`;
-  }
-
-  function renderCategory() {
-    const cat = catOf(state.category);
-    const items = recipes.filter(r => r.category === state.category);
-    return `
-      <header class="head">
-        <h1><span aria-hidden="true">${cat.icon}</span> ${esc(catLabel(cat.name))}</h1>
-        <p class="sub">${t('count')(items.length)}</p>
-      </header>
-      ${grid(items, t('catEmpty'))}
       ${fab()}`;
   }
 
@@ -999,7 +1100,7 @@
         <p class="field-title">${t('emoji')}</p>
         <div class="emoji-grid">${icons}</div>
         <div class="actions">
-          <button class="btn btn-primary" data-action="save-cat">${t('createCat')}</button>
+          <button class="btn btn-dark" data-action="save-cat">${t('createCat')}</button>
           <button class="btn btn-ghost" data-action="cancel">${t('cancel')}</button>
         </div>
       </div>`;
@@ -1016,76 +1117,90 @@
     const cat = catOf(r.category);
     const tr = state.translation && state.translation.id === r.id ? state.translation : null;
     const shown = tr ? { ...r, ...tr.recipe } : r;
+    const isVideo = r.source && VIDEO_LINK.test(r.source);
     const translatePanel = !tr && state.showTranslate ? `
       <div class="translate">
         <input id="t-lang" list="t-langs" value="${esc(readJSON(LANG_KEY, 'English'))}" placeholder="${t('langPh')}" aria-label="${t('langAria')}">
         <datalist id="t-langs">${LANGS.map(l => `<option value="${esc(l)}">`).join('')}</datalist>
-        <button class="btn btn-primary" data-action="translate"${state.translating ? ' disabled' : ''}>${state.translating ? t('translating') : t('translate')}</button>
+        <button class="btn btn-dark" data-action="translate"${state.translating ? ' disabled' : ''}>${state.translating ? t('translating') : t('translate')}</button>
       </div>` : '';
     return `
-      <div class="hero" style="--c:${cat.color}">
-        ${r.photo ? `<img src="${esc(r.photo)}" alt="">` : `<span class="no-photo" aria-hidden="true">${cat.icon}</span>`}
-        <span class="shade"></span>
-        ${OWN_BACK ? `<button class="back" data-action="back">${icon('back', 'flip')}${t('back')}</button>` : ''}
-        <div class="hero-text">
-          <div class="tags">
-            <span class="tag"><span aria-hidden="true">${cat.icon}</span>${esc(catLabel(r.category))}</span>
-            ${r.ai ? `<span class="tag ai">${icon('sparkle')}${t('aiBadge')}</span>` : ''}
-          </div>
-          <h1 class="recipe-title" dir="auto">${esc(shown.title)}</h1>
+      <div class="hero">
+        ${r.photo ? `<img src="${esc(r.photo)}" alt="">` : `<span class="no-photo" style="--c:${cat.color}" aria-hidden="true">${cat.icon}</span>`}
+        <div class="hero-bar">
+          ${OWN_BACK ? `<button class="round" data-action="back" aria-label="${t('back')}">${icon('back', 'flip')}</button>` : ''}
+          <span class="spacer"></span>
+          <button class="round${r.favorite ? ' on' : ''}" data-action="toggle-fav" data-id="${esc(r.id)}" aria-pressed="${!!r.favorite}" aria-label="${r.favorite ? t('inFav') : t('toFav')}">${icon('heart')}</button>
         </div>
       </div>
 
-      <div class="facts">
-        <span class="fact">${icon('clock')}${esc(timeText(r))}${r.timeEstimated ? ` (${t('estimate')})` : ''}</span>
-        <span class="fact">${icon('people')}${r.baseServings} ${portions(r.baseServings)}</span>
-      </div>
+      <div class="sheet">
+        <h1 class="recipe-title" dir="auto">${esc(shown.title)}</h1>
+        <p class="recipe-sub"><span aria-hidden="true">${cat.icon}</span> ${esc(catLabel(r.category))}</p>
 
-      <div class="tools">
-        <button class="tool${r.favorite ? ' on' : ''}" data-action="toggle-fav" aria-pressed="${!!r.favorite}">${icon('star')}${r.favorite ? t('inFav') : t('toFav')}</button>
-        <button class="tool${tr || state.showTranslate ? ' on' : ''}" data-action="${tr ? 'show-original' : 'toggle-translate'}">${icon('globe')}${tr ? t('showOriginal') : t('translate')}</button>
-        <button class="tool" data-action="edit">${icon('edit')}${t('edit')}</button>
-      </div>
-      ${translatePanel}
-      ${tr ? `<p class="sub" style="margin:-14px 0 24px">${esc(t('translated')(tr.lang))}</p>` : ''}
-      ${state.translateError ? `<p class="error" style="margin:-14px 0 24px">${esc(state.translateError)}</p>` : ''}
-
-      <section class="section">
-        <div class="section-head">
-          <h2>${t('ingredients')}</h2>
-          <div class="servings">
-            <button class="btn btn-round" data-action="serv-dec" aria-label="${t('servLess')}">${icon('minus')}</button>
-            <span class="serv-val">${state.servings} ${portions(state.servings)}</span>
-            <button class="btn btn-round" data-action="serv-inc" aria-label="${t('servMore')}">${icon('plus')}</button>
-          </div>
+        <hr class="divider">
+        <div class="highlights">
+          <div class="hl">${icon('clock')}<div><b>${esc(timeText(r))}</b><span>${t('timeTitle')}${r.timeEstimated ? `, ${t('estimate')}` : ''}</span></div></div>
+          <div class="hl">${icon('people')}<div><b>${r.baseServings} ${portions(r.baseServings)}</b><span>${t('servTitle')}</span></div></div>
+          ${r.ai ? `<div class="hl">${icon('sparkle')}<div><b>${t('aiBadge')}</b><span>${t('aiSub')}</span></div></div>` : ''}
         </div>
-        <ul class="ingr">
-          ${shown.ingredients.map(i => `
-            <li>
-              <span dir="auto">${esc(i.name)}</span>
-              ${i.amount || i.unit ? `<b>${esc(scale(i.amount, factor))} ${esc(i.unit)}</b>` : ''}
-            </li>`).join('')}
-        </ul>
-      </section>
 
-      <section class="section">
-        <h2>${t('cooking')}</h2>
-        <ol class="steps">
-          ${shown.steps.map((s, i) => {
-            const isDone = doneList.includes(i);
-            return `
-            <li class="step${isDone ? ' done' : ''}" data-action="toggle-step" data-index="${i}" role="button" tabindex="0" aria-pressed="${isDone}">
-              <span class="step-num">${isDone ? icon('check') : i + 1}</span>
-              <span class="step-text" dir="auto">${esc(s)}</span>
-            </li>`;
-          }).join('')}
-        </ol>
-      </section>
+        <hr class="divider">
+        <div class="tools">
+          <button class="tool${tr || state.showTranslate ? ' on' : ''}" data-action="${tr ? 'show-original' : 'toggle-translate'}">${icon('globe')}${tr ? t('showOriginal') : t('translate')}</button>
+          <button class="tool" data-action="edit">${icon('edit')}${t('edit')}</button>
+        </div>
+        ${translatePanel}
+        ${tr ? `<p class="sub">${esc(t('translated')(tr.lang))}</p>` : ''}
+        ${state.translateError ? `<p class="error">${esc(state.translateError)}</p>` : ''}
 
-      <div class="end-actions">
-        ${doneList.length ? `<button class="btn btn-ghost" data-action="reset-done">${t('resetDone')}</button>` : '<span></span>'}
-        <button class="btn btn-danger" data-action="delete">${icon('trash')}${state.confirmDelete ? t('confirmDelete') : t('deleteRecipe')}</button>
-      </div>`;
+        <hr class="divider">
+        <section>
+          <div class="section-head">
+            <h2>${t('ingredients')}</h2>
+            <div class="servings">
+              <button class="step-btn" data-action="serv-dec" aria-label="${t('servLess')}"${state.servings <= 1 ? ' disabled' : ''}>${icon('minus')}</button>
+              <span class="serv-val">${state.servings} ${portions(state.servings)}</span>
+              <button class="step-btn" data-action="serv-inc" aria-label="${t('servMore')}">${icon('plus')}</button>
+            </div>
+          </div>
+          <ul class="ingr">
+            ${shown.ingredients.map(i => `
+              <li>
+                <span dir="auto">${esc(i.name)}</span>
+                ${i.amount || i.unit ? `<b>${esc(scale(i.amount, factor))} ${esc(i.unit)}</b>` : ''}
+              </li>`).join('')}
+          </ul>
+        </section>
+
+        <hr class="divider">
+        <section>
+          <h2>${t('cooking')}</h2>
+          <ol class="steps">
+            ${shown.steps.map((s, i) => {
+              const isDone = doneList.includes(i);
+              return `
+              <li class="step${isDone ? ' done' : ''}" data-action="toggle-step" data-index="${i}" role="button" tabindex="0" aria-pressed="${isDone}">
+                <span class="step-num">${isDone ? icon('check') : i + 1}</span>
+                <span class="step-text" dir="auto">${esc(s)}</span>
+              </li>`;
+            }).join('')}
+          </ol>
+        </section>
+
+        <hr class="divider">
+        <div class="end-actions">
+          ${doneList.length ? `<button class="btn btn-ghost" data-action="reset-done">${t('resetDone')}</button>` : '<span></span>'}
+          <button class="btn btn-danger" data-action="delete">${icon('trash')}${state.confirmDelete ? t('confirmDelete') : t('deleteRecipe')}</button>
+        </div>
+      </div>
+      ${r.source ? `
+      <div class="bottom-bar">
+        <div class="in">
+          <div class="src"><b>${t('sourceTitle')}</b><span>${esc(hostOf(r.source))}</span></div>
+          <button class="btn btn-primary" data-action="open-source">${icon(isVideo ? 'play' : 'link')}${isVideo ? t('openVideo') : t('openPage')}</button>
+        </div>
+      </div>` : ''}`;
   }
 
   function renderForm() {
@@ -1116,6 +1231,9 @@
           ${d.photo ? `<button class="btn btn-ghost" data-action="remove-photo">${t('removePhoto')}</button>` : ''}
           <input id="f-photo" type="file" accept="image/*" hidden>
         </div>
+        <label>${t('sourceLabel')}
+          <input id="f-source" type="url" inputmode="url" placeholder="https://" value="${esc(d.source || '')}" dir="ltr">
+        </label>
         <label>${t('category')}
           <select id="f-cat">${options}</select>
         </label>
@@ -1136,23 +1254,28 @@
           <textarea id="f-steps" rows="8" placeholder="${t('stepsPh')}">${esc(d.steps)}</textarea>
         </label>
         <div class="actions">
-          <button class="btn btn-primary" data-action="save">${t('save')}</button>
+          <button class="btn btn-dark" data-action="save">${t('save')}</button>
           <button class="btn btn-ghost" data-action="cancel">${t('cancel')}</button>
         </div>
       </div>`;
   }
 
   function render() {
-    const views = { home: renderHome, favs: renderFavs, category: renderCategory, recipe: renderRecipe, form: renderForm, 'cat-form': renderCatForm };
+    const views = { home: renderHome, recipe: renderRecipe, form: renderForm, 'cat-form': renderCatForm };
     const body = views[state.view]();
     const hero = state.view === 'recipe';
-    const back = state.view === 'home' || hero || !OWN_BACK ? '' : `<div class="top"><button class="back" data-action="back">${icon('back', 'flip')}${t('back')}</button></div>`;
+    const back = state.view === 'home' || hero || !OWN_BACK ? '' : `<div class="top"><button class="round" data-action="back" aria-label="${t('back')}">${icon('back', 'flip')}</button></div>`;
+    const entering = state.view !== lastView || (hero && state.recipeId !== lastRecipe);
     app.classList.toggle('hero-view', hero);
+    app.classList.remove('enter');
     app.innerHTML = back + body;
 
-    if (state.view !== lastView) {
+    if (entering) {
       window.scrollTo(0, 0);
+      void app.offsetWidth; // restart the entrance animation
+      app.classList.add('enter');
       lastView = state.view;
+      lastRecipe = state.recipeId;
     }
     if (tg && tg.BackButton) {
       if (state.view === 'home') tg.BackButton.hide();
@@ -1174,6 +1297,7 @@
       .map(i => ({ name: i.name.trim(), amount: i.amount.trim().replace(',', '.'), unit: i.unit.trim() }))
       .filter(i => i.name);
     const steps = d.steps.split('\n').map(s => s.trim()).filter(Boolean);
+    const source = String(d.source || '').trim();
 
     if (!title) return { error: t('errTitle') };
     if (title.length > 80) return { error: t('errTitleLong') };
@@ -1182,6 +1306,7 @@
     if (!/^\d+$/.test(servings) || Number(servings) < 1) return { error: t('errServ') };
     if (!ingredients.length) return { error: t('errIngr') };
     if (!steps.length) return { error: t('errSteps') };
+    if (source && !safeUrl(source)) return { error: t('errSource') };
 
     return {
       recipe: {
@@ -1191,6 +1316,7 @@
         baseServings: Number(servings),
         ingredients,
         steps,
+        source,
         photo: d.photo
       }
     };
@@ -1248,9 +1374,26 @@
         goBack();
         break;
 
-      case 'open-cat':
-        go('category', { category: el.dataset.cat });
+      case 'filter': {
+        state.category = el.dataset.cat;
+        render();
+        const results = document.getElementById('results');
+        if (results && results.classList) results.classList.add('fade');
+        const tab = document.querySelector('.cat.on');
+        if (tab) tab.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+        haptic('tap');
         break;
+      }
+
+      case 'open-source': {
+        const r = recipes.find(x => x.id === state.recipeId);
+        const url = r && safeUrl(r.source);
+        if (!url) break;
+        if (tg && /^https:\/\/t\.me\//i.test(url)) tg.openTelegramLink(url);
+        else if (tg) tg.openLink(url);
+        else window.open(url, '_blank', 'noopener');
+        break;
+      }
 
       case 'open-recipe': {
         const r = recipes.find(x => x.id === el.dataset.id);
@@ -1260,15 +1403,11 @@
 
       case 'new': {
         go('form', {
-          draft: blankDraft(state.view === 'category' ? state.category : ''),
+          draft: blankDraft(state.category && state.category !== FAV ? state.category : ''),
           editingId: ''
         });
         break;
       }
-
-      case 'open-favs':
-        go('favs');
-        break;
 
       case 'open-bot': {
         const url = `https://t.me/${BOT_USERNAME}`;
@@ -1369,9 +1508,13 @@
         break;
 
       case 'toggle-fav': {
-        const next = recipes.map(x => (x.id === state.recipeId ? { ...x, favorite: !x.favorite } : x));
+        const id = el.dataset.id || state.recipeId;
+        const next = recipes.map(x => (x.id === id ? { ...x, favorite: !x.favorite } : x));
         if (writeJSON(KEY, next)) recipes = next;
+        haptic('tap');
         render();
+        const again = document.querySelector(`[data-action="toggle-fav"][data-id="${CSS.escape(id)}"]`);
+        if (again && again.classList.contains('on')) again.classList.add('pop');
         break;
       }
 
