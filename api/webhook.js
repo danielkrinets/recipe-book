@@ -12,7 +12,7 @@ const { waitUntil } = require('@vercel/functions');
 // Bot replies in the user's Telegram language; unknown languages get English
 const TEXTS = {
   ru: {
-    hello: 'Привет! Пришлите ссылку на рецепт, текст рецепта, фото или видео. Я подготовлю черновик, а сохранить его решите вы.',
+    hello: 'Привет, это Kirti! Пришлите ссылку на рецепт, текст рецепта, фото или видео. Я подготовлю черновик, а сохранить его решите вы.',
     failed: 'Не удалось разобрать рецепт, попробуйте другой текст или фото',
     youtube: 'YouTube не отдаёт мне это видео. Скопируйте описание ролика и пришлите текстом или пришлите само видео файлом.',
     storeFailed: 'Не удалось сохранить черновик, попробуйте ещё раз',
@@ -27,7 +27,7 @@ const TEXTS = {
     notFound: 'Не найдено или уже сохранено',
   },
   en: {
-    hello: 'Hi! Send a recipe link, the recipe text, a photo or a video. I will prepare a draft, and you decide whether to save it.',
+    hello: 'Hi, this is Kirti! Send a recipe link, the recipe text, a photo or a video. I will prepare a draft, and you decide whether to save it.',
     failed: 'Could not read the recipe, try another text or photo',
     youtube: 'YouTube does not let me open this video. Copy the video description and send it as text, or send the video file itself.',
     storeFailed: 'Could not save the draft, please try again',
@@ -42,7 +42,7 @@ const TEXTS = {
     notFound: 'Not found or already saved',
   },
   he: {
-    hello: 'שלום! שלחו קישור למתכון, טקסט של מתכון, תמונה או סרטון. אכין טיוטה, ואתם תחליטו אם לשמור אותה.',
+    hello: 'שלום, כאן Kirti! שלחו קישור למתכון, טקסט של מתכון, תמונה או סרטון. אכין טיוטה, ואתם תחליטו אם לשמור אותה.',
     failed: 'לא הצלחתי לקרוא את המתכון, נסו טקסט או תמונה אחרים',
     youtube: 'יוטיוב לא מאפשר לי לפתוח את הסרטון. העתיקו את תיאור הסרטון ושלחו כטקסט, או שלחו את קובץ הסרטון עצמו.',
     storeFailed: 'לא הצלחתי לשמור את הטיוטה, נסו שוב',

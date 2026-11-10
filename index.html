@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#FFFFFF">
-<title>Книга рецептов</title>
+<title>Kirti</title>
+<link rel="icon" type="image/png" href="img/icon.png">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -302,6 +303,8 @@
   .error { color: var(--danger); margin: 10px 0 0; font-size: 15px; }
 
   /* Home greeting and shelves */
+  .logo { display: block; width: auto; height: 44px; margin: 0 0 14px -4px; }
+  [dir="rtl"] .logo { margin: 0 -4px 14px 0; }
   .hello { margin: 0 0 2px; color: var(--muted); font-size: 15px; font-weight: 600; }
   .home-head h1 { font-size: 28px; max-width: 12em; }
   .shelf { margin-bottom: 28px; }
@@ -651,7 +654,7 @@
       importYoutube: 'YouTube не открыл это видео. Скопируйте описание ролика и вставьте его сюда.',
       importOnlyTg: 'Импорт работает, когда приложение открыто в Telegram.', importEmpty: 'Вставьте ссылку или текст рецепта.',
       chatHint: 'Фото и видеофайлы присылайте боту в чат.', aiBadge: 'Импортировано через ИИ', estimate: 'примерно',
-      noRecipes: 'Рецептов пока нет. Вставьте ссылку выше.', addCategory: 'Категория', appTitle: 'Книга рецептов', appSub: 'Любимые рецепты в одном месте',
+      noRecipes: 'Рецептов пока нет. Вставьте ссылку выше.', addCategory: 'Категория', appTitle: 'Kirti', appSub: 'Любимые рецепты в одном месте',
       search: 'Поиск по названию или ингредиенту', nothing: 'Ничего не нашлось. Попробуйте другое слово.',
       botHintTitle: 'Добавить рецепт из Telegram.',
       botHint: 'Отправьте боту ссылку на рецепт, скриншот, фото или видео, или напишите рецепт текстом. Бот пришлёт черновик, и вы подтвердите его перед сохранением.',
@@ -699,7 +702,7 @@
       importYoutube: 'YouTube would not open this video. Copy the video description and paste it here.',
       importOnlyTg: 'Import works when the app is opened in Telegram.', importEmpty: 'Paste a link or the recipe text.',
       chatHint: 'Send photos and video files to the bot in the chat.', aiBadge: 'Imported with AI', estimate: 'estimated',
-      noRecipes: 'No recipes yet. Paste a link above.', addCategory: 'Category', appTitle: 'Recipe Book', appSub: 'Favorite recipes in one place',
+      noRecipes: 'No recipes yet. Paste a link above.', addCategory: 'Category', appTitle: 'Kirti', appSub: 'Favorite recipes in one place',
       search: 'Search by name or ingredient', nothing: 'Nothing found. Try another word.',
       botHintTitle: 'Add a recipe from Telegram.',
       botHint: 'Send the bot a recipe link, a screenshot, a photo or a video, or type the recipe. The bot sends a draft, and you confirm it before saving.',
@@ -742,7 +745,7 @@
       importYoutube: 'יוטיוב לא פתח את הסרטון. העתיקו את תיאור הסרטון והדביקו אותו כאן.',
       importOnlyTg: 'הייבוא עובד כשהאפליקציה פתוחה בטלגרם.', importEmpty: 'הדביקו קישור או טקסט של מתכון.',
       chatHint: 'תמונות וקובצי וידאו שלחו לבוט בצ׳אט.', aiBadge: 'יובא באמצעות AI', estimate: 'משוער',
-      noRecipes: 'אין עדיין מתכונים. הדביקו קישור למעלה.', addCategory: 'קטגוריה', appTitle: 'ספר מתכונים', appSub: 'המתכונים האהובים במקום אחד',
+      noRecipes: 'אין עדיין מתכונים. הדביקו קישור למעלה.', addCategory: 'קטגוריה', appTitle: 'Kirti', appSub: 'המתכונים האהובים במקום אחד',
       search: 'חיפוש לפי שם או מצרך', nothing: 'לא נמצא דבר. נסו מילה אחרת.',
       botHintTitle: 'הוספת מתכון מטלגרם.',
       botHint: 'שלחו לבוט קישור למתכון, צילום מסך, תמונה או סרטון, או כתבו את המתכון. הבוט ישלח טיוטה, ואתם תאשרו אותה לפני השמירה.',
@@ -1170,6 +1173,7 @@
     return `
       <div class="home-head">
         <div>
+          <img class="logo" src="img/logo.png" alt="Kirti" width="211" height="130">
           <p class="hello">${t('hello')[Math.floor(new Date().getHours() / 6)]}</p>
           <h1>${t('whatCook')}</h1>
         </div>

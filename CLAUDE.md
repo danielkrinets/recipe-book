@@ -1,4 +1,4 @@
-# Книга рецептов (recipe-book-tma)
+# Kirti — книга рецептов (recipe-book-tma)
 
 Telegram Mini App: один файл `index.html`, без сборки. Тесты на `node:test`.
 
