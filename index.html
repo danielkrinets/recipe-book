@@ -19,7 +19,6 @@
     --line-strong: #DDDDDD;
     --surface: #F7F7F7;
     --accent: #E3385A;
-    --accent-grad: linear-gradient(90deg, #EC3D5C 0%, #D42A6A 100%);
     --danger: #C13515;
     --shadow-float: 0 6px 20px rgba(0, 0, 0, 0.12);
     --shadow-pill: 0 3px 12px rgba(0, 0, 0, 0.1);
@@ -64,6 +63,21 @@
   .app.enter > *:nth-child(n+4) { animation-delay: 90ms; }
   @keyframes enter { from { opacity: 0; transform: translateY(12px); } }
   .fade { animation: fade 260ms var(--ease) both; }
+  /* Cards rise one after another when a list appears */
+  .stagger .card { animation: rise 520ms var(--ease) both; animation-delay: calc(min(var(--i), 8) * 45ms); }
+  @keyframes rise { from { opacity: 0; transform: translateY(18px) scale(0.97); } }
+  /* With view transitions the photo morphs from the card into the page; the sheet slides up under it */
+  .app.vt .sheet { animation: sheet-up 560ms var(--ease) both; }
+  .app.vt .bottom-bar, .app.enter .bottom-bar { animation: bar-up 480ms var(--ease) 180ms both; }
+  @keyframes sheet-up { from { transform: translateY(70px); opacity: 0; } }
+  @keyframes bar-up { from { transform: translateY(100%); } }
+  ::view-transition-group(*) { animation-duration: 460ms; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 260ms; }
+  .hero img, .hero .no-photo { will-change: transform; }
+  .step.just .step-num { animation: pop 420ms var(--ease); }
+  .bump .serv-val, .bump .ingr b { animation: bump 360ms var(--ease); }
+  @keyframes bump { 40% { transform: scale(1.12); color: var(--accent); } }
+  .ingr b { display: inline-block; }
   @keyframes fade { from { opacity: 0; transform: translateY(6px); } }
 
   /* Header */
@@ -115,7 +129,8 @@
     border: 0; border-radius: 10px; padding: 13px 22px; font-weight: 700; min-height: 48px;
   }
   .btn[disabled] { opacity: 0.45; }
-  .btn-primary { background: var(--accent-grad); color: #fff; }
+  .btn-primary { background: var(--text); color: #fff; }
+  .btn-primary:active { background: #000; }
   .btn-dark { background: var(--text); color: #fff; }
   .btn-outline { background: #fff; border: 1px solid var(--text); color: var(--text); }
   .btn-soft { background: var(--surface); color: var(--text); }
@@ -270,7 +285,8 @@
   .error { color: var(--danger); margin: 10px 0 0; font-size: 15px; }
 
   @media (prefers-reduced-motion: reduce) {
-    .app.enter > *, .fade, .heart.pop .icon, .round.pop .icon { animation: none; }
+    .app.enter > *, .fade, .heart.pop .icon, .round.pop .icon, .stagger .card, .app.vt .sheet, .bottom-bar, .step.just .step-num, .bump .serv-val, .bump .ingr b { animation: none !important; }
+    ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
     .btn:active, .tool:active, .round:active, .heart:active, .fab:active, .step-btn:active, .card-open:active { transform: none; }
     .spinner { animation-duration: 3s; }
   }
@@ -984,10 +1000,28 @@
     return state.draft;
   }
 
+  const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  let viaTransition = false;
+
+  // Screen changes go through the View Transitions API where the WebView has it, so shared photos morph
+  function transition() {
+    if (reduceMotion || !document.startViewTransition || document.hidden) return render();
+    let ran = false;
+    const update = () => {
+      if (ran) return;
+      ran = true;
+      viaTransition = true;
+      render();
+      viaTransition = false;
+    };
+    document.startViewTransition(update);
+    setTimeout(update, 400); // a WebView that never paints the transition still changes screen
+  }
+
   function go(view, patch = {}, { replace = false } = {}) {
-    if (!replace) state.history = [...state.history, { view: state.view, category: state.category, recipeId: state.recipeId, servings: state.servings }];
-    Object.assign(state, { view, error: '', confirmDelete: false }, patch);
-    render();
+    if (!replace) state.history = [...state.history, { view: state.view, category: state.category, recipeId: state.recipeId, servings: state.servings, restoreScroll: window.scrollY || 0 }];
+    Object.assign(state, { view, error: '', confirmDelete: false, restoreScroll: 0 }, patch);
+    transition();
   }
 
   function goBack() {
@@ -995,18 +1029,21 @@
     const prev = state.history.at(-1) || { view: 'home' };
     state.history = state.history.slice(0, -1);
     Object.assign(state, prev, { error: '', confirmDelete: false });
-    render();
+    transition();
   }
+
+  // shared-element name for a recipe's photo, so the card photo and the page photo are one element to the browser
+  const vtName = id => `p-${String(id).replace(/[^\w-]/g, '')}`;
 
   const FAV = '__fav';
 
-  function card(r) {
+  function card(r, i = 0) {
     const cat = catOf(r.category);
     const meta = [catLabel(r.category), r.time ? timeText(r) : ''].filter(Boolean).join(', ');
     return `
-      <article class="card">
+      <article class="card" style="--i:${i}">
         <button class="card-open" data-action="open-recipe" data-id="${esc(r.id)}">
-          <span class="card-photo" style="--c:${cat.color}">
+          <span class="card-photo" style="--c:${cat.color};view-transition-name:${vtName(r.id)}">
             ${r.photo ? `<img src="${esc(r.photo)}" alt="" loading="lazy">` : `<span class="no-photo" aria-hidden="true">${cat.icon}</span>`}
             ${r.source && VIDEO_LINK.test(r.source) ? `<span class="card-badge">${icon('play')}${t('video')}</span>` : ''}
           </span>
@@ -1125,7 +1162,7 @@
         <button class="btn btn-dark" data-action="translate"${state.translating ? ' disabled' : ''}>${state.translating ? t('translating') : t('translate')}</button>
       </div>` : '';
     return `
-      <div class="hero">
+      <div class="hero" style="view-transition-name:${vtName(r.id)}">
         ${r.photo ? `<img src="${esc(r.photo)}" alt="">` : `<span class="no-photo" style="--c:${cat.color}" aria-hidden="true">${cat.icon}</span>`}
         <div class="hero-bar">
           ${OWN_BACK ? `<button class="round" data-action="back" aria-label="${t('back')}">${icon('back', 'flip')}</button>` : ''}
@@ -1267,16 +1304,19 @@
     const back = state.view === 'home' || hero || !OWN_BACK ? '' : `<div class="top"><button class="round" data-action="back" aria-label="${t('back')}">${icon('back', 'flip')}</button></div>`;
     const entering = state.view !== lastView || (hero && state.recipeId !== lastRecipe);
     app.classList.toggle('hero-view', hero);
-    app.classList.remove('enter');
+    app.classList.remove('enter', 'vt');
     app.innerHTML = back + body;
 
     if (entering) {
-      window.scrollTo(0, 0);
+      window.scrollTo(0, state.restoreScroll || 0);
       void app.offsetWidth; // restart the entrance animation
-      app.classList.add('enter');
+      app.classList.add(viaTransition ? 'vt' : 'enter');
+      const results = document.getElementById('results');
+      if (results && !state.restoreScroll) results.classList.add('stagger');
       lastView = state.view;
       lastRecipe = state.recipeId;
     }
+    parallax();
     if (tg && tg.BackButton) {
       if (state.view === 'home') tg.BackButton.hide();
       else tg.BackButton.show();
@@ -1378,7 +1418,7 @@
         state.category = el.dataset.cat;
         render();
         const results = document.getElementById('results');
-        if (results && results.classList) results.classList.add('fade');
+        if (results && results.classList) results.classList.add('stagger');
         const tab = document.querySelector('.cat.on');
         if (tab) tab.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
         haptic('tap');
@@ -1533,14 +1573,14 @@
         break;
 
       case 'serv-inc':
-        state.servings = Math.min(50, state.servings + 1);
+      case 'serv-dec': {
+        state.servings = Math.min(50, Math.max(1, state.servings + (el.dataset.action === 'serv-inc' ? 1 : -1)));
+        haptic('tap');
         render();
+        const section = document.querySelector('.servings');
+        if (section) section.closest('section').classList.add('bump');
         break;
-
-      case 'serv-dec':
-        state.servings = Math.max(1, state.servings - 1);
-        render();
-        break;
+      }
 
       case 'toggle-step': {
         const idx = Number(el.dataset.index);
@@ -1549,6 +1589,8 @@
         haptic('tap');
         writeJSON(DONE_KEY, done);
         render();
+        const stepEl = document.querySelector(`.step[data-index="${idx}"]`);
+        if (stepEl) stepEl.classList.add('just');
         break;
       }
 
@@ -1647,6 +1689,16 @@
       e.target.click();
     }
   });
+
+  // The recipe photo drifts slower than the page and stretches when pulled down
+  function parallax() {
+    if (reduceMotion || state.view !== 'recipe') return;
+    const media = document.querySelector('.hero img, .hero .no-photo');
+    if (!media) return;
+    const y = window.scrollY;
+    media.style.transform = y < 0 ? `scale(${1 - y / 260})` : `translateY(${y * 0.4}px) scale(${1 + y / 4000})`;
+  }
+  window.addEventListener('scroll', () => requestAnimationFrame(parallax), { passive: true });
 
   if (tg && tg.BackButton) tg.BackButton.onClick(goBack);
 

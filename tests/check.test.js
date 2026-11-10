@@ -17,7 +17,7 @@ function load(storage = {}) {
     querySelectorAll() { return []; }
   });
   const sandbox = {
-    window: { Telegram: undefined, scrollTo() {} },
+    window: { Telegram: undefined, scrollTo() {}, addEventListener() {} },
     document: { getElementById: el, querySelectorAll: () => [], createElement: el, documentElement: {} },
     localStorage: {
       getItem: k => (store.has(k) ? store.get(k) : null),
