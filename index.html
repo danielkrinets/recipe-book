@@ -105,7 +105,17 @@
   .search input::placeholder { color: var(--muted); font-weight: 500; }
 
   /* Import card */
-  .import { border: 1px solid var(--line-strong); border-radius: 16px; padding: 16px; margin-bottom: 20px; }
+  .import {
+    position: relative; border-radius: 22px; padding: 18px; margin-bottom: 22px; overflow: hidden;
+    background: radial-gradient(120% 140% at 100% 0%, #FFE3CF 0%, #FFF4EC 55%, #FFF8F2 100%);
+  }
+  .import-icon {
+    position: absolute; top: 16px; inset-inline-end: 16px; width: 40px; height: 40px; border-radius: 50%; background: #fff;
+    display: grid; place-items: center; color: #E8743B; box-shadow: 0 6px 16px -6px rgba(232, 116, 59, 0.6);
+    animation: float 4s ease-in-out infinite;
+  }
+  @keyframes float { 50% { transform: translateY(-4px) rotate(8deg); } }
+  .import textarea { border-color: transparent !important; box-shadow: 0 2px 10px -4px rgba(0, 0, 0, 0.15); }
   .import h2 { font-size: 18px; margin-bottom: 4px; }
   .import .sub { margin: 0 0 12px; font-size: 14px; line-height: 1.4; }
   .import-row { display: flex; gap: 8px; align-items: flex-end; }
@@ -154,16 +164,20 @@
     border: 0; background: none; color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap;
     transition: color 200ms var(--ease);
   }
-  .cat .glyph { height: 26px; display: grid; place-items: center; font-size: 22px; line-height: 1; filter: grayscale(0.35); opacity: 0.75; transition: filter 200ms, opacity 200ms; }
+  .cat .glyph {
+    width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; line-height: 1;
+    background: var(--c, var(--surface)); transition: transform 240ms var(--ease), box-shadow 240ms var(--ease);
+  }
+  .cat:active .glyph { transform: scale(0.9); }
+  .cat.on .glyph { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--text); transform: translateY(-2px); }
   .cat .glyph .icon { width: 24px; height: 24px; stroke-width: 1.7; }
   .cat::after {
     content: ''; position: absolute; inset-inline: 0; bottom: -1px; height: 2px; background: var(--text);
     transform: scaleX(0); transition: transform 240ms var(--ease);
   }
   .cat.on { color: var(--text); }
-  .cat.on .glyph { filter: none; opacity: 1; }
   .cat.on::after { transform: scaleX(1); }
-  .cat.add .glyph { opacity: 1; }
+  .cat.add .glyph { background: #fff; border: 1.5px dashed var(--line-strong); }
 
   /* Recipe cards */
   .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 14px; }
@@ -234,17 +248,20 @@
   .ingr li { display: flex; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
   .ingr li:last-child { border-bottom: 0; }
   .ingr b { font-weight: 700; white-space: nowrap; }
-  .steps { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+  .steps { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
   .step {
-    display: grid; grid-template-columns: 32px 1fr; gap: 14px; padding: 12px; margin: 0 -12px; border-radius: 12px; cursor: pointer;
-    transition: background-color 200ms var(--ease);
+    display: grid; grid-template-columns: 32px 1fr; gap: 14px; padding: 16px; border-radius: 18px; cursor: pointer;
+    background: var(--surface); transition: background-color 220ms var(--ease), transform 180ms var(--ease);
   }
+  .step:active { transform: scale(0.98); }
+  .step.done { background: #F0F7F1; }
+  .step-num { background: #fff; }
   .step:active { background: var(--surface); }
   .step-num {
     width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--text); display: grid; place-items: center;
     font-weight: 800; font-size: 14px; transition: background-color 220ms var(--ease), border-color 220ms;
   }
-  .step.done .step-num { background: var(--text); color: #fff; }
+  .step.done .step-num { background: #2E8B57; border-color: #2E8B57; color: #fff; }
   .step.done .step-text { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
   .step-text { padding-top: 4px; transition: color 220ms; }
   .step-num .icon { width: 16px; height: 16px; stroke-width: 3; }
@@ -284,8 +301,39 @@
   .actions { display: grid; gap: 10px; margin-top: 8px; }
   .error { color: var(--danger); margin: 10px 0 0; font-size: 15px; }
 
+  /* Home greeting and shelves */
+  .hello { margin: 0 0 2px; color: var(--muted); font-size: 15px; font-weight: 600; }
+  .home-head h1 { font-size: 28px; max-width: 12em; }
+  .shelf { margin-bottom: 28px; }
+  .shelf-title { font-size: 20px; margin: 4px 0 12px; }
+  .shelf-row {
+    display: flex; gap: 14px; overflow-x: auto; margin: 0 -20px; padding: 4px 20px 14px; scroll-snap-type: x mandatory;
+    scroll-padding-inline: 20px; scrollbar-width: none;
+  }
+  .shelf-row::-webkit-scrollbar { display: none; }
+  .shelf-row .card { flex: 0 0 74%; max-width: 300px; scroll-snap-align: start; }
+  .shelf-row .card-photo { aspect-ratio: 4 / 3; border-radius: 18px; }
+  .shelf-row .card-title { font-size: 16px; }
+  .card-photo { box-shadow: 0 14px 28px -16px rgba(40, 20, 0, 0.45); }
+  .card-photo::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04); pointer-events: none; }
+  .cats { border-bottom: 0; gap: 18px; padding-top: 6px; }
+  .cat::after { display: none; }
+
+  /* Recipe stats */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stat { display: grid; justify-items: start; gap: 2px; padding: 14px; border-radius: 18px; background: var(--surface); min-width: 0; }
+  .stat-icon { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--c, #fff); margin-bottom: 8px; }
+  .stat-icon .icon { width: 18px; height: 18px; }
+  .stat b { font-size: 17px; font-weight: 800; line-height: 1.2; }
+  .stat span { color: var(--muted); font-size: 13px; line-height: 1.3; }
+  .ai-note { display: grid; grid-template-columns: 22px 1fr; gap: 12px; margin-top: 12px; padding: 14px; border-radius: 18px; background: #FFF4EC; }
+  .ai-note .icon { color: #E8743B; }
+  .ai-note b { display: block; font-weight: 700; }
+  .ai-note span { display: block; color: var(--muted); font-size: 14px; }
+  .ingr { background: var(--surface); border-radius: 18px; padding: 2px 16px; }
+
   @media (prefers-reduced-motion: reduce) {
-    .app.enter > *, .fade, .heart.pop .icon, .round.pop .icon, .stagger .card, .app.vt .sheet, .bottom-bar, .step.just .step-num, .bump .serv-val, .bump .ingr b { animation: none !important; }
+    .app.enter > *, .fade, .heart.pop .icon, .round.pop .icon, .stagger .card, .app.vt .sheet, .bottom-bar, .step.just .step-num, .bump .serv-val, .bump .ingr b, .import-icon { animation: none !important; }
     ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
     .btn:active, .tool:active, .round:active, .heart:active, .fab:active, .step-btn:active, .card-open:active { transform: none; }
     .spinner { animation-duration: 3s; }
@@ -593,7 +641,7 @@
   const I18N = {
     ru: {
       langName: 'Русский',
-      allCats: 'Все', video: 'Видео', openVideo: 'Смотреть видео', openPage: 'Открыть оригинал', sourceTitle: 'Оригинал',
+      allCats: 'Все', hello: ['Доброй ночи', 'Доброе утро', 'Добрый день', 'Добрый вечер'], whatCook: 'Что приготовим сегодня?', recent: 'Недавно добавленные', quick: 'Быстро, до 30 минут', allRecipes: 'Все рецепты', ingrCount: 'ингр.', stepsCount: 'шагов', video: 'Видео', openVideo: 'Смотреть видео', openPage: 'Открыть оригинал', sourceTitle: 'Оригинал',
       sourceLabel: 'Ссылка на оригинал (видео или сайт)', errSource: 'Ссылка должна начинаться с https://',
       importSub: 'Ссылка на видео, сайт или текст. ИИ разберёт рецепт сам.',
       timeTitle: 'Время приготовления', servTitle: 'Порций по рецепту', aiSub: 'Рецепт собран нейросетью, проверьте количества', newShort: 'Рецепт',
@@ -641,7 +689,7 @@
     },
     en: {
       langName: 'English',
-      allCats: 'All', video: 'Video', openVideo: 'Watch video', openPage: 'Open original', sourceTitle: 'Original',
+      allCats: 'All', hello: ['Good night', 'Good morning', 'Good afternoon', 'Good evening'], whatCook: 'What are we cooking today?', recent: 'Recently added', quick: 'Quick, under 30 minutes', allRecipes: 'All recipes', ingrCount: 'ingr.', stepsCount: 'steps', video: 'Video', openVideo: 'Watch video', openPage: 'Open original', sourceTitle: 'Original',
       sourceLabel: 'Link to the original (video or website)', errSource: 'The link must start with https://',
       importSub: 'A video or website link, or the text. AI does the rest.',
       timeTitle: 'Cooking time', servTitle: 'Servings in the recipe', aiSub: 'Put together by AI, check the amounts', newShort: 'Recipe',
@@ -684,7 +732,7 @@
     },
     he: {
       langName: 'עברית',
-      allCats: 'הכול', video: 'סרטון', openVideo: 'צפייה בסרטון', openPage: 'פתיחת המקור', sourceTitle: 'המקור',
+      allCats: 'הכול', hello: ['לילה טוב', 'בוקר טוב', 'צהריים טובים', 'ערב טוב'], whatCook: 'מה מבשלים היום?', recent: 'נוספו לאחרונה', quick: 'מהיר, עד 30 דקות', allRecipes: 'כל המתכונים', ingrCount: 'מצרכים', stepsCount: 'שלבים', video: 'סרטון', openVideo: 'צפייה בסרטון', openPage: 'פתיחת המקור', sourceTitle: 'המקור',
       sourceLabel: 'קישור למקור (סרטון או אתר)', errSource: 'הקישור צריך להתחיל ב-https://',
       importSub: 'קישור לסרטון, לאתר או טקסט. ה-AI יעשה את השאר.',
       timeTitle: 'זמן הכנה', servTitle: 'מנות במתכון', aiSub: 'נאסף על ידי AI, בדקו את הכמויות', newShort: 'מתכון',
@@ -1037,13 +1085,13 @@
 
   const FAV = '__fav';
 
-  function card(r, i = 0) {
+  function card(r, i = 0, shared = true) {
     const cat = catOf(r.category);
     const meta = [catLabel(r.category), r.time ? timeText(r) : ''].filter(Boolean).join(', ');
     return `
       <article class="card" style="--i:${i}">
         <button class="card-open" data-action="open-recipe" data-id="${esc(r.id)}">
-          <span class="card-photo" style="--c:${cat.color};view-transition-name:${vtName(r.id)}">
+          <span class="card-photo" style="--c:${cat.color}${shared ? `;view-transition-name:${vtName(r.id)}` : ''}">
             ${r.photo ? `<img src="${esc(r.photo)}" alt="" loading="lazy">` : `<span class="no-photo" aria-hidden="true">${cat.icon}</span>`}
             ${r.source && VIDEO_LINK.test(r.source) ? `<span class="card-badge">${icon('play')}${t('video')}</span>` : ''}
           </span>
@@ -1065,7 +1113,22 @@
     else if (state.category) found = found.filter(r => r.category === state.category);
     if (q) found = found.filter(r => r.title.toLowerCase().includes(q) || r.ingredients.some(i => i.name.toLowerCase().includes(q)));
     const empty = q ? t('nothing') : state.category === FAV ? t('favsEmpty') : state.category ? t('catEmpty') : t('noRecipes');
-    return grid(found, empty);
+    if (q || state.category || recipes.length < 5) return grid(found, empty);
+    const quick = recipes.filter(r => r.time && r.time <= 30);
+    return `
+      ${shelf(t('recent'), recipes.slice(0, 8))}
+      ${quick.length >= 2 ? shelf(t('quick'), quick.slice(0, 8)) : ''}
+      <h2 class="shelf-title">${t('allRecipes')}</h2>
+      ${grid(found, empty)}`;
+  }
+
+  // A horizontal row of big cards; the photos are not shared elements, the grid below has the same recipes
+  function shelf(title, items) {
+    return `
+      <section class="shelf">
+        <h2 class="shelf-title">${title}</h2>
+        <div class="shelf-row">${items.map((r, i) => card(r, i, false)).join('')}</div>
+      </section>`;
   }
 
   const fab = () => `<button class="fab" data-action="new">${icon('plus')}${t('newShort')}</button>`;
@@ -1079,6 +1142,7 @@
     const busy = state.importing;
     return `
       <section class="import">
+        <span class="import-icon" aria-hidden="true">${icon('sparkle')}</span>
         <h2>${t('importTitle')}</h2>
         <p class="sub">${t('importSub')}</p>
         <div class="import-row">
@@ -1091,23 +1155,23 @@
       </section>`;
   }
 
-  function catTab(value, glyph, label) {
+  function catTab(value, glyph, label, color) {
     const on = state.category === value;
-    return `<button class="cat${on ? ' on' : ''}" data-action="filter" data-cat="${esc(value)}" aria-pressed="${on}"><span class="glyph" aria-hidden="true">${glyph}</span>${esc(label)}</button>`;
+    return `<button class="cat${on ? ' on' : ''}" data-action="filter" data-cat="${esc(value)}" aria-pressed="${on}"${color ? ` style="--c:${color}"` : ''}><span class="glyph" aria-hidden="true">${glyph}</span>${esc(label)}</button>`;
   }
 
   function renderHome() {
     const tabs = [
       catTab('', icon('grid'), t('allCats')),
       recipes.some(r => r.favorite) ? catTab(FAV, icon('heart'), t('favs')) : '',
-      ...allCategories().filter(c => c.name !== OLD_BOT_CAT).map(c => catTab(c.name, c.icon, catLabel(c.name))),
+      ...allCategories().filter(c => c.name !== OLD_BOT_CAT).map(c => catTab(c.name, c.icon, catLabel(c.name), c.color)),
       `<button class="cat add" data-action="new-cat"><span class="glyph" aria-hidden="true">${icon('plus')}</span>${t('addCategory')}</button>`
     ].join('');
     return `
       <div class="home-head">
         <div>
-          <h1>${t('appTitle')}</h1>
-          <p class="sub">${t('count')(recipes.length)}</p>
+          <p class="hello">${t('hello')[Math.floor(new Date().getHours() / 6)]}</p>
+          <h1>${t('whatCook')}</h1>
         </div>
         ${langSwitch()}
       </div>
@@ -1176,11 +1240,12 @@
         <p class="recipe-sub"><span aria-hidden="true">${cat.icon}</span> ${esc(catLabel(r.category))}</p>
 
         <hr class="divider">
-        <div class="highlights">
-          <div class="hl">${icon('clock')}<div><b>${esc(timeText(r))}</b><span>${t('timeTitle')}${r.timeEstimated ? `, ${t('estimate')}` : ''}</span></div></div>
-          <div class="hl">${icon('people')}<div><b>${r.baseServings} ${portions(r.baseServings)}</b><span>${t('servTitle')}</span></div></div>
-          ${r.ai ? `<div class="hl">${icon('sparkle')}<div><b>${t('aiBadge')}</b><span>${t('aiSub')}</span></div></div>` : ''}
+        <div class="stats" style="--c:${cat.color}">
+          <div class="stat"><span class="stat-icon">${icon('clock')}</span><b>${esc(timeText(r))}</b><span>${r.timeEstimated ? t('estimate') : t('timeTitle')}</span></div>
+          <div class="stat"><span class="stat-icon">${icon('people')}</span><b>${r.baseServings}</b><span>${portions(r.baseServings)}</span></div>
+          <div class="stat"><span class="stat-icon">${icon('check')}</span><b>${r.ingredients.length}</b><span>${t('ingrCount')}</span></div>
         </div>
+        ${r.ai ? `<div class="ai-note">${icon('sparkle')}<div><b>${t('aiBadge')}</b><span>${t('aiSub')}</span></div></div>` : ''}
 
         <hr class="divider">
         <div class="tools">
