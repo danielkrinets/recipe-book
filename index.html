@@ -173,6 +173,8 @@
   .import textarea::placeholder, .form ::placeholder { color: var(--muted); }
   .import .btn { flex: none; min-height: 52px; }
   .progress { display: flex; align-items: center; gap: 10px; margin-top: 14px; color: var(--muted); font-size: 15px; }
+  .left { margin: 8px 2px 0; font-size: 13px; color: var(--muted); }
+  .left.none { color: var(--accent); }
   .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line-strong); border-top-color: var(--text); animation: spin 0.9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .row-link {
@@ -333,6 +335,15 @@
   const BOT_USERNAME = 'recipe4katyabot'; // username бота без @; пока пусто, кнопка не показывается
   const API = 'https://recipe-book-tma.vercel.app';
   const IMPORTED_KEY = 'recipe-book-imported-v1';
+  // Gemini does not report its quota, so imports are counted here per day (shortcut: per device, not per account)
+  const IMPORT_LIMIT = 20;
+  const IMPORT_KEY = 'recipe-book-imports-v1';
+  const today = () => new Date().toISOString().slice(0, 10);
+  const importsLeft = () => {
+    const u = readJSON(IMPORT_KEY, {});
+    return Math.max(0, IMPORT_LIMIT - (u.day === today() ? u.n : 0));
+  };
+  const countImport = () => writeJSON(IMPORT_KEY, { day: today(), n: IMPORT_LIMIT - importsLeft() + 1 });
   const LANG_KEY = 'recipe-book-lang-v1';
   // Suggestions only: any language name typed in the field is sent to Claude
   const LANGS = ['English', 'Русский', 'עברית', 'العربية', 'Українська', 'Español', 'Français', 'Deutsch', 'Italiano',
@@ -604,6 +615,8 @@
       langName: 'Русский',
       allCats: 'Все', ingrCount: 'ингр.', stepsCount: 'шагов', video: 'Видео', openVideo: 'Смотреть видео', openPage: 'Открыть оригинал', sourceTitle: 'Оригинал',
       sourceLabel: 'Ссылка на оригинал (видео или сайт)', errSource: 'Ссылка должна начинаться с https://',
+      importLeft: (n) => `Осталось импортов сегодня: ${n} из ${IMPORT_LIMIT}`,
+      importNone: 'Лимит импортов на сегодня закончился. Завтра снова будет 20.',
       importSub: 'Ссылка на видео, сайт или текст. ИИ разберёт рецепт сам.',
       timeTitle: 'Время приготовления', servTitle: 'Порций по рецепту', aiSub: 'Рецепт собран нейросетью, проверьте количества',
       importTitle: 'Добавить рецепт', importPh: 'Вставьте ссылку',
@@ -652,6 +665,8 @@
       langName: 'English',
       allCats: 'All', ingrCount: 'ingr.', stepsCount: 'steps', video: 'Video', openVideo: 'Watch video', openPage: 'Open original', sourceTitle: 'Original',
       sourceLabel: 'Link to the original (video or website)', errSource: 'The link must start with https://',
+      importLeft: (n) => `Imports left today: ${n} of ${IMPORT_LIMIT}`,
+      importNone: 'No imports left today. You get 20 again tomorrow.',
       importSub: 'A video or website link, or the text. AI does the rest.',
       timeTitle: 'Cooking time', servTitle: 'Servings in the recipe', aiSub: 'Put together by AI, check the amounts',
       importTitle: 'Add a recipe', importPh: 'Paste a link',
@@ -695,6 +710,8 @@
       langName: 'עברית',
       allCats: 'הכול', ingrCount: 'מצרכים', stepsCount: 'שלבים', video: 'סרטון', openVideo: 'צפייה בסרטון', openPage: 'פתיחת המקור', sourceTitle: 'המקור',
       sourceLabel: 'קישור למקור (סרטון או אתר)', errSource: 'הקישור צריך להתחיל ב-https://',
+      importLeft: (n) => `נשארו ייבואים להיום: ${n} מתוך ${IMPORT_LIMIT}`,
+      importNone: 'נגמרו הייבואים להיום. מחר יהיו 20 שוב.',
       importSub: 'קישור לסרטון, לאתר או טקסט. ה-AI יעשה את השאר.',
       timeTitle: 'זמן הכנה', servTitle: 'מנות במתכון', aiSub: 'נאסף על ידי AI, בדקו את הכמויות',
       importTitle: 'הוספת מתכון', importPh: 'הדביקו קישור',
@@ -1117,6 +1134,7 @@
         </div>
         ${busy ? `<div class="progress" role="status"><span class="spinner"></span>${esc(busy)}</div>` : ''}
         ${state.importError ? `<p class="error" role="alert">${esc(state.importError)}</p>` : ''}
+        <p class="left${importsLeft() ? '' : ' none'}">${t('importLeft')(importsLeft())}</p>
       </section>`;
   }
 
@@ -1587,6 +1605,11 @@
           render();
           break;
         }
+        if (!importsLeft()) {
+          state.importError = t('importNone');
+          render();
+          break;
+        }
         if (!tg || !tg.initData) {
           state.importError = t('importOnlyTg');
           render();
@@ -1600,6 +1623,7 @@
             const next = [recipe, ...recipes];
             if (!writeJSON(KEY, next)) throw new Error('storage');
             recipes = next;
+            countImport();
             state.importText = '';
             state.importing = '';
             haptic('success');
