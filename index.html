@@ -55,9 +55,29 @@
     padding: calc(var(--safe-top) + 12px) 20px calc(var(--safe-bottom) + 112px);
   }
   .app.hero-view { padding-top: 0; }
-  /* The only screen animation: a short fade when the screen changes */
-  .view-in { animation: fadein 160ms ease-out; }
-  @keyframes fadein { from { opacity: 0; } }
+  /* Motion: transform and opacity only, so it runs on the compositor and stays smooth */
+  :root { --ease: cubic-bezier(0.22, 1, 0.36, 1); }
+  .view-in { animation: viewin 320ms var(--ease); }
+  @keyframes viewin { from { opacity: 0; transform: translateY(16px); } }
+  .view-in .card:nth-child(-n+6) { animation: rise 460ms var(--ease) backwards; }
+  .view-in .card:nth-child(2) { animation-delay: 50ms; }
+  .view-in .card:nth-child(3) { animation-delay: 100ms; }
+  .view-in .card:nth-child(4) { animation-delay: 150ms; }
+  .view-in .card:nth-child(5) { animation-delay: 200ms; }
+  .view-in .card:nth-child(6) { animation-delay: 250ms; }
+  @keyframes rise { from { opacity: 0; transform: translateY(28px) scale(0.97); } }
+  .hero-view .view-in, .hero-view.view-in { animation: none; }
+  .hero-view .view-in .hero img, .hero-view .view-in .hero .no-photo { animation: zoomout 700ms var(--ease); }
+  @keyframes zoomout { from { transform: scale(1.12); } }
+  .hero-view .view-in .sheet { animation: sheetup 520ms var(--ease); }
+  @keyframes sheetup { from { transform: translateY(70px); opacity: 0; } }
+  .hero-view .view-in .bottom-bar { animation: barup 420ms var(--ease) 120ms backwards; }
+  @keyframes barup { from { transform: translateY(100%); } }
+  .tabbar .tab.on .icon { animation: tabpop 360ms var(--ease); }
+  @keyframes tabpop { 40% { transform: scale(1.22); } }
+  .heart.pop .icon, .round.pop .icon { animation: heartpop 460ms var(--ease); }
+  @keyframes heartpop { 0% { transform: scale(0.6); } 45% { transform: scale(1.35); } 100% { transform: scale(1); } }
+  .step.just .step-num { animation: heartpop 420ms var(--ease); }
 
   h1 { font-size: 26px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
   h2 { font-size: 22px; line-height: 1.25; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 12px; }
@@ -1625,6 +1645,8 @@
         document.querySelectorAll('[data-action="toggle-fav"]').forEach(b => {
           if (b.dataset.id !== id) return;
           b.classList.toggle('on', fav);
+          b.classList.remove('pop');
+          if (fav) { void b.offsetWidth; b.classList.add('pop'); }
           b.setAttribute('aria-pressed', String(fav));
           b.setAttribute('aria-label', fav ? t('inFav') : t('toFav'));
         });
@@ -1670,6 +1692,8 @@
         haptic('tap');
         writeJSON(DONE_KEY, done);
         el.classList.toggle('done', isDone);
+        el.classList.remove('just');
+        if (isDone) { void el.offsetWidth; el.classList.add('just'); }
         el.setAttribute('aria-pressed', String(isDone));
         el.querySelector('.step-num').innerHTML = isDone ? icon('check') : String(idx + 1);
         refreshEndActions();
