@@ -118,9 +118,11 @@ async function albumLeader(message, deps) {
   for (let i = 0; i < ALBUM_MAX_WAITS; i++) {
     await deps.sleep(ALBUM_WAIT_MS);
     const quiet = await store.albumQuietMs(groupKey);
+    console.log('album wait', groupKey, i, quiet);
     if (quiet === null || quiet >= ALBUM_QUIET_MS) break;
   }
   const parts = await store.claimAlbum(groupKey);
+  console.log('album claimed', groupKey, parts.length);
   return parts.length ? parts.slice(0, MAX_ALBUM) : null;
 }
 
