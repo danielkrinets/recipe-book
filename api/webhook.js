@@ -100,21 +100,25 @@ function formatDraft(draft, t) {
 }
 
 const ALBUM_WAIT_MS = 3000;
+const ALBUM_QUIET_MS = 2500; // no new photo for this long means the album is complete
+const ALBUM_MAX_WAITS = 4;
 const MAX_ALBUM = 8;
 const bestPhoto = (message) => [...message.photo].reverse().find((p) => (p.file_size || 0) <= MAX_PHOTO_BYTES);
 
-// Every photo of an album arrives as its own update. All of them store themselves and wait;
-// only the one that came last (highest message id) goes on and reads the whole album.
+// Every photo of an album arrives as its own update, in any order and sometimes seconds apart (cold starts).
+// Each one stores itself and waits until no new photo has come for a while; the first to wake up claims the whole album.
 async function albumLeader(message, deps) {
   const photo = bestPhoto(message);
   if (!photo) throw new Error('photo too large');
   const { store } = deps;
   await store.addAlbumPart(message.media_group_id, message.from.id, message.message_id, photo.file_id);
-  await deps.sleep(ALBUM_WAIT_MS);
-  const parts = await store.albumParts(message.media_group_id);
-  if (!parts.length || Math.max(...parts.map((p) => p.messageId)) !== message.message_id) return null;
-  await store.clearAlbum(message.media_group_id);
-  return parts.slice(0, MAX_ALBUM);
+  for (let i = 0; i < ALBUM_MAX_WAITS; i++) {
+    await deps.sleep(ALBUM_WAIT_MS);
+    const quiet = await store.albumQuietMs(message.media_group_id);
+    if (quiet === null || quiet >= ALBUM_QUIET_MS) break;
+  }
+  const parts = await store.claimAlbum(message.media_group_id);
+  return parts.length ? parts.slice(0, MAX_ALBUM) : null;
 }
 
 async function draftFromPhotos(parts, deps) {

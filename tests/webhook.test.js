@@ -50,8 +50,8 @@ function fakeStore({ saved = true, fail = false } = {}) {
       return saved;
     },
     addAlbumPart: async (groupId, userId, messageId, fileId) => album.push({ groupId, messageId, fileId }),
-    albumParts: async () => album.map((p) => ({ messageId: p.messageId, fileId: p.fileId })).sort((a, b) => a.messageId - b.messageId),
-    clearAlbum: async () => { album.length = 0; },
+    albumQuietMs: async () => (album.length ? 10_000 : null),
+    claimAlbum: async () => album.splice(0).map((p) => ({ messageId: p.messageId, fileId: p.fileId })).sort((a, b) => a.messageId - b.messageId),
   };
 }
 
