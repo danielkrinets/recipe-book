@@ -104,3 +104,15 @@ test('the prompt offers the user categories, quoted, and falls back to the built
   assert.match(recipePrompt(), /"Выпечка", "Супы", "Горячее", "Салаты", "Десерты"/);
   assert.match(recipePrompt(['x"y']), /"x\\"y"/);
 });
+
+test('extraction asks for a JSON schema and never forces a tool (Sonnet 5.5 rejects tool_choice)', async () => {
+  let body;
+  const fetchImpl = async (url, init) => {
+    body = JSON.parse(init.body);
+    return { ok: true, json: async () => ({ content: [{ type: 'text', text: '{"title":"","ingredients":[],"steps":[]}' }] }) };
+  };
+  await extractDraft({ text: 'x' }, 'key', fetchImpl);
+  assert.equal(body.output_config.format.type, 'json_schema');
+  assert.equal(body.tool_choice, undefined);
+  assert.equal(body.tools, undefined);
+});
