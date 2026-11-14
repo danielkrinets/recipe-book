@@ -188,10 +188,10 @@ async function handleMessage(message, deps) {
   let made;
   try {
     made = parts && parts.length > 1 ? await draftFromPhotos(parts, deps) : await makeDraft(message, deps);
-    if (!made.draft.title) throw new Error('no recipe found');
+    if (!made.draft.title) throw Object.assign(new Error('no recipe found'), { reason: made.draft.reason });
   } catch (err) {
     console.error('extract failed', err.message);
-    return say(err.youtube ? t.youtube : t.failed);
+    return say(err.youtube ? t.youtube : err.reason ? `${t.failed}.\n${err.reason}` : t.failed);
   }
 
   try {
