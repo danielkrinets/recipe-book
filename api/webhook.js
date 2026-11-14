@@ -19,6 +19,7 @@ const TEXTS = {
     tooLarge: 'Видео больше 20 МБ, бот такое скачать не может. Пришлите видео покороче.',
     watching: 'Смотрю видео, это займёт до минуты…',
     reading: 'Читаю рецепт…',
+    reading_pages: 'Читаю рецепт с нескольких фото, сам расставлю их по порядку…',
     ingredients: 'Ингредиенты:',
     min: 'мин',
     steps: 'Шаги:',
@@ -34,6 +35,7 @@ const TEXTS = {
     tooLarge: 'The video is over 20 MB, the bot cannot download it. Send a shorter video.',
     watching: 'Watching the video, this takes up to a minute…',
     reading: 'Reading the recipe…',
+    reading_pages: 'Reading the recipe from several photos, I will put them in order myself…',
     ingredients: 'Ingredients:',
     min: 'min',
     steps: 'Steps:',
@@ -49,6 +51,7 @@ const TEXTS = {
     tooLarge: 'הסרטון גדול מ-20 MB, הבוט לא יכול להוריד אותו. שלחו סרטון קצר יותר.',
     watching: 'צופה בסרטון, זה ייקח עד דקה…',
     reading: 'קורא את המתכון…',
+    reading_pages: 'קורא מתכון מכמה תמונות, אסדר אותן לבד…',
     ingredients: 'מצרכים:',
     min: 'דק׳',
     steps: 'אופן ההכנה:',
@@ -96,6 +99,38 @@ function formatDraft(draft, t) {
   return text.slice(0, 4000); // Telegram caps one message at 4096 characters
 }
 
+const ALBUM_WAIT_MS = 3000;
+const MAX_ALBUM = 8;
+const bestPhoto = (message) => [...message.photo].reverse().find((p) => (p.file_size || 0) <= MAX_PHOTO_BYTES);
+
+// Every photo of an album arrives as its own update. All of them store themselves and wait;
+// only the one that came last (highest message id) goes on and reads the whole album.
+async function albumLeader(message, deps) {
+  const photo = bestPhoto(message);
+  if (!photo) throw new Error('photo too large');
+  const { store } = deps;
+  await store.addAlbumPart(message.media_group_id, message.from.id, message.message_id, photo.file_id);
+  await deps.sleep(ALBUM_WAIT_MS);
+  const parts = await store.albumParts(message.media_group_id);
+  if (!parts.length || Math.max(...parts.map((p) => p.messageId)) !== message.message_id) return null;
+  await store.clearAlbum(message.media_group_id);
+  return parts.slice(0, MAX_ALBUM);
+}
+
+async function draftFromPhotos(parts, deps) {
+  const { extract, tg, token } = deps;
+  const files = await Promise.all(parts.map(async (part) => {
+    const file = await tg.getFile(token, part.fileId);
+    return { bytes: await tg.downloadFile(token, file.file_path), mediaType: mediaTypeOf(file.file_path) };
+  }));
+  const draft = await extract({
+    images: files.map((f) => ({ base64: f.bytes.toString('base64'), mediaType: f.mediaType })),
+    pages: true,
+    text: 'The photos are pages of one recipe.',
+  });
+  return { draft, photo: { bytes: files[0].bytes, mediaType: files[0].mediaType } };
+}
+
 // Returns the extracted draft and, for a photo or video, the bytes to keep as the recipe photo
 async function makeDraft(message, deps) {
   const { extract, tg, token } = deps;
@@ -129,10 +164,21 @@ async function handleMessage(message, deps) {
   if (!message.photo && !video && !text) return;
   if (video && (video.file_size || 0) > MAX_VIDEO_BYTES) return say(t.tooLarge);
 
-  await say(video || (LINK.test(text) && isVideoLink(text)) ? t.watching : t.reading);
+  let parts = null;
+  if (message.photo && message.media_group_id) {
+    try {
+      parts = await albumLeader(message, deps);
+    } catch (err) {
+      console.error('album failed', err.message);
+      return say(t.failed);
+    }
+    if (!parts) return; // another photo of this album does the work
+  }
+
+  await say(parts && parts.length > 1 ? t.reading_pages : video || (LINK.test(text) && isVideoLink(text)) ? t.watching : t.reading);
   let made;
   try {
-    made = await makeDraft(message, deps);
+    made = parts ? await draftFromPhotos(parts, deps) : await makeDraft(message, deps);
     if (!made.draft.title) throw new Error('no recipe found');
   } catch (err) {
     console.error('extract failed', err.message);
@@ -171,6 +217,7 @@ function createHandler({
   tg = telegram,
   store: storage = store,
   defer = waitUntil,
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 } = {}) {
   return async (req, res) => {
     if (req.method !== 'POST') return res.status(405).json({ error: 'method not allowed' });
@@ -179,7 +226,7 @@ function createHandler({
     }
 
     const body = req.body || {};
-    const deps = { extract, video, download, youtube, gemini, thumbnail, tg, store: storage, token: process.env.TELEGRAM_BOT_TOKEN };
+    const deps = { extract, video, download, youtube, gemini, thumbnail, tg, store: storage, sleep, token: process.env.TELEGRAM_BOT_TOKEN };
     const work = (async () => {
       if (body.callback_query) await handleCallback(body.callback_query, deps);
       else if (body.message && body.message.chat) await handleMessage(body.message, deps);

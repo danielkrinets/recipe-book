@@ -31,6 +31,7 @@ function fakeTelegram() {
 // Database and Blob stand-in; fail makes every write throw
 function fakeStore({ saved = true, fail = false } = {}) {
   const calls = [];
+  const album = [];
   const check = () => { if (fail) throw new Error('storage down'); };
   return {
     calls,
@@ -48,6 +49,9 @@ function fakeStore({ saved = true, fail = false } = {}) {
       calls.push({ method: 'saveRecipe', userId, draftId });
       return saved;
     },
+    addAlbumPart: async (groupId, userId, messageId, fileId) => album.push({ groupId, messageId, fileId }),
+    albumParts: async () => album.map((p) => ({ messageId: p.messageId, fileId: p.fileId })).sort((a, b) => a.messageId - b.messageId),
+    clearAlbum: async () => { album.length = 0; },
   };
 }
 
@@ -61,7 +65,7 @@ async function call({ method = 'POST', secret = SECRET, body = {}, extract, vide
   };
   const headers = secret === null ? {} : { 'x-telegram-bot-api-secret-token': secret };
   const deferred = [];
-  await createHandler({ extract, video, download, youtube, gemini, thumbnail, tg, store, defer: (p) => deferred.push(p) })({ method, headers, body }, res);
+  await createHandler({ extract, video, download, youtube, gemini, thumbnail, tg, store, sleep: () => new Promise((r) => setTimeout(r, 5)), defer: (p) => deferred.push(p) })({ method, headers, body }, res);
   await Promise.all(deferred);
   return res;
 }
@@ -287,4 +291,18 @@ test('with a Gemini key, a YouTube link is watched by Gemini and the draft shows
   const text = tg.calls.at(-1).text;
   assert.match(text, /Выпечка · ≈ 40 мин/);
   assert.match(text, /• мука — 300 г/);
+});
+
+test('photos of one album are read together, only the last one does the work', async () => {
+  const tg = fakeTelegram();
+  const store = fakeStore();
+  const seen = [];
+  const extract = async (input) => { seen.push(input); return DRAFT; };
+  const album = [10, 11, 12].map((id) => ({ message_id: id, media_group_id: 'g1', photo: [{ file_id: `f${id}`, file_size: 1000 }] }));
+  await Promise.all(album.map((message) => call({ body: update(message), extract, tg, store })));
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].images.length, 3);
+  assert.equal(seen[0].pages, true);
+  assert.equal(tg.calls.filter((c) => c.method === 'sendMessage' && c.text.includes('нескольких')).length, 1);
+  assert.deepEqual(store.calls.map((c) => c.method), ['savePhoto', 'saveDraft']);
 });
