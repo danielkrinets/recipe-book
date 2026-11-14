@@ -111,13 +111,16 @@ async function albumLeader(message, deps) {
   const photo = bestPhoto(message);
   if (!photo) throw new Error('photo too large');
   const { store } = deps;
-  await store.addAlbumPart(message.media_group_id, message.from.id, message.message_id, photo.file_id);
+  // Photos sent one after another (not as an album) have no group id, so a burst from one user counts as one recipe
+  const groupKey = message.media_group_id || `user-${message.from.id}`;
+  console.log('photo group', groupKey);
+  await store.addAlbumPart(groupKey, message.from.id, message.message_id, photo.file_id);
   for (let i = 0; i < ALBUM_MAX_WAITS; i++) {
     await deps.sleep(ALBUM_WAIT_MS);
-    const quiet = await store.albumQuietMs(message.media_group_id);
+    const quiet = await store.albumQuietMs(groupKey);
     if (quiet === null || quiet >= ALBUM_QUIET_MS) break;
   }
-  const parts = await store.claimAlbum(message.media_group_id);
+  const parts = await store.claimAlbum(groupKey);
   return parts.length ? parts.slice(0, MAX_ALBUM) : null;
 }
 
@@ -169,7 +172,7 @@ async function handleMessage(message, deps) {
   if (video && (video.file_size || 0) > MAX_VIDEO_BYTES) return say(t.tooLarge);
 
   let parts = null;
-  if (message.photo && message.media_group_id) {
+  if (message.photo) {
     try {
       parts = await albumLeader(message, deps);
     } catch (err) {
@@ -182,7 +185,7 @@ async function handleMessage(message, deps) {
   await say(parts && parts.length > 1 ? t.reading_pages : video || (LINK.test(text) && isVideoLink(text)) ? t.watching : t.reading);
   let made;
   try {
-    made = parts ? await draftFromPhotos(parts, deps) : await makeDraft(message, deps);
+    made = parts && parts.length > 1 ? await draftFromPhotos(parts, deps) : await makeDraft(message, deps);
     if (!made.draft.title) throw new Error('no recipe found');
   } catch (err) {
     console.error('extract failed', err.message);
